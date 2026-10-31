@@ -55,7 +55,7 @@
 
         <!-- Boss Health Bar -->
         <div id="boss-hud" class="w-full max-w-sm mx-auto hidden pointer-events-auto text-center px-4">
-            <p class="text-[10px] sm:text-xs text-red-400 font-bold tracking-widest mb-1 shadow-[0_0_5px_rgba(255,0,0,0.8)]">WARNING: BORG CUBE INTERCEPTED</p>
+            <p class="text-[10px] sm:text-xs text-red-400 font-bold tracking-widest mb-1 shadow-[0_0_5px_rgba(255,0,0,0.8)]">WARNING: OUT OF WARP - BORG CUBE ENGAGED</p>
             <div class="w-full bg-slate-900 h-2.5 sm:h-3 rounded-full overflow-hidden border border-red-500/60 shadow-[0_0_15px_rgba(255,0,0,0.5)]">
                 <div id="boss-health-bar" class="bg-red-600 h-full w-full transition-all duration-150"></div>
             </div>
@@ -99,6 +99,7 @@
             const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
             osc.connect(gain); gain.connect(audioCtx.destination); const now = audioCtx.currentTime;
             if (type === 'laser') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.15); gain.gain.setValueAtTime(0.15, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.15); osc.start(now); osc.stop(now + 0.15); }
+            else if (type === 'borg-laser') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(80, now + 0.3); gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
             else if (type === 'explosion') { osc.type = 'square'; osc.frequency.setValueAtTime(120, now); osc.frequency.linearRampToValueAtTime(30, now + 0.4); gain.gain.setValueAtTime(0.25, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.4); osc.start(now); osc.stop(now + 0.4); }
             else if (type === 'powerup') { osc.type = 'sine'; osc.frequency.setValueAtTime(440, now); osc.frequency.exponentialRampToValueAtTime(880, now + 0.1); osc.frequency.exponentialRampToValueAtTime(1320, now + 0.2); gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
             else if (type === 'victory') { osc.type = 'triangle'; osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(554.37, now + 0.2); osc.frequency.setValueAtTime(659.25, now + 0.4); gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.8); osc.start(now); osc.stop(now + 0.8); }
@@ -117,11 +118,15 @@
         renderer.setSize(window.innerWidth, window.innerHeight); renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 1.0); scene.add(ambientLight);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.2); scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 10, 7);
+        scene.add(directionalLight);
+
         const playerGroup = new THREE.Group(); scene.add(playerGroup);
 
         let material1 = null, material2 = null, centerTexture = null, topTexture = null, midTopTexture = null, midBottomTexture = null, bottomTexture = null;
-        let defaultTexture = new THREE.CanvasTexture(document.createElement('canvas')); // Safe fallback
+        let defaultTexture = new THREE.CanvasTexture(document.createElement('canvas'));
 
         function loadTransparentTexture(url, callback) {
             const img = new Image(); img.crossOrigin = 'anonymous';
@@ -133,17 +138,15 @@
                 ctx.putImageData(imgData, 0, 0); const texture = new THREE.CanvasTexture(canvas);
                 texture.generateMipmaps = true; texture.minFilter = THREE.LinearMipmapLinearFilter; callback(texture);
             };
-            img.onerror = () => { console.warn("Could not load: " + url + ", using fallback."); callback(null); }; img.src = url;
+            img.onerror = () => { console.warn("Could not load: " + url); callback(null); }; img.src = url;
         }
 
-        // Setup ship meshes immediately with fallbacks so it never blocks
         const shipGeo = new THREE.PlaneGeometry(3.6, 1.6);
         material1 = new THREE.MeshBasicMaterial({ map: defaultTexture, transparent: true, opacity: 1.0, side: THREE.DoubleSide });
         material2 = new THREE.MeshBasicMaterial({ map: defaultTexture, transparent: true, opacity: 0.0, side: THREE.DoubleSide });
         playerGroup.add(new THREE.Mesh(shipGeo, material1));
         const m2 = new THREE.Mesh(shipGeo, material2); m2.position.z = 0.001; playerGroup.add(m2);
 
-        // Load textures asynchronously
         loadTransparentTexture('ship.png', (tex) => { if(tex) { centerTexture = tex; material1.map = tex; material1.needsUpdate = true; } });
         loadTransparentTexture('ship top.png', (tex) => { topTexture = tex || centerTexture; });
         loadTransparentTexture('ship mid-top.png', (tex) => { midTopTexture = tex || centerTexture; });
@@ -180,9 +183,9 @@
 
         // --- GAME STATE ---
         let gameActive = false, score = 0, shields = 100, warpFactor = 1, missionProgress = 0, sectorCount = 1;
-        let bossActive = false, boss = null, bossHealth = 100;
+        let bossActive = false, boss = null, bossHealth = 100, borgLaserTimer = 0;
         let rapidFireActive = false, rapidFireTimer = 0;
-        let lasers = [], enemies = [], powerups = [];
+        let lasers = [], borgLasers = [], enemies = [], powerups = [];
         let targetX = 0, targetY = 0, keys = {}, lastShotTime = 0;
         let touchStartX = 0, touchStartY = 0, shipStartX = 0, shipStartY = 0;
 
@@ -202,29 +205,52 @@
             [-1.0, 1.0].forEach(offsetX => { const laser = new THREE.Mesh(laserGeo, laserMat); laser.position.set(playerGroup.position.x + offsetX, playerGroup.position.y, playerGroup.position.z - 1); scene.add(laser); lasers.push(laser); });
         }
 
-        function spawnEnemy() { if (!gameActive || bossActive) return;
-            const enemy = Math.random() > 0.4 ? new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.5, 8), new THREE.MeshStandardMaterial({ color: 0xff2222, metalness: 0.8 })) : new THREE.Mesh(new THREE.DodecahedronGeometry(0.9), new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.9 }));
-            if (enemy.geometry.type === "ConeGeometry") enemy.geometry.rotateX(Math.PI / 2);
-            enemy.position.set((Math.random() - 0.5) * 12, (Math.random() - 0.5) * 8, -100); enemy.userData = { rotSpeed: new THREE.Vector3(Math.random()*0.05, Math.random()*0.05, 0) }; scene.add(enemy); enemies.push(enemy);
+        function fireBorgLaser() {
+            if (!bossActive || !boss) return;
+            playSound('borg-laser');
+            const laserGeo = new THREE.CylinderGeometry(0.08, 0.08, 2.5, 8);
+            laserGeo.rotateX(Math.PI / 2);
+            const laserMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 }); 
+            const bLaser = new THREE.Mesh(laserGeo, laserMat);
+            bLaser.position.set(boss.position.x + (Math.random() - 0.5) * 4, boss.position.y + (Math.random() - 0.5) * 4, boss.position.z);
+            scene.add(bLaser);
+            borgLasers.push(bLaser);
+        }
+
+        function spawnEnemy() {
+            if (!gameActive || bossActive) return;
+            const isDrone = Math.random() > 0.4;
+            let enemy;
+            if (isDrone) {
+                enemy = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.5, 8), new THREE.MeshStandardMaterial({ color: 0xff2222, metalness: 0.8 }));
+                enemy.geometry.rotateX(Math.PI / 2);
+            } else {
+                enemy = new THREE.Mesh(new THREE.DodecahedronGeometry(1.0, 1), new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.9, metalness: 0.1, flatShading: true }));
+            }
+            enemy.position.set((Math.random() - 0.5) * 12, (Math.random() - 0.5) * 8, -100);
+            enemy.userData = { rotSpeed: new THREE.Vector3((Math.random()-0.5)*0.08, (Math.random()-0.5)*0.08, 0) };
+            scene.add(enemy); enemies.push(enemy);
         }
         setInterval(spawnEnemy, 900);
 
         function spawnPowerup(pos, type) {
-            const mat = new THREE.MeshStandardMaterial({ color: (type === 'shield' ? 0x00ffff : 0xffff00), transparent: true, opacity: 0.9, emissive: (type === 'shield' ? 0x00ffff : 0xffff00), emissiveIntensity: 0.5 });
-            const p = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), mat); p.position.copy(pos); p.userData = { type: type }; scene.add(p); powerups.push(p);
+            const mat = new THREE.MeshStandardMaterial({ color: (type === 'shield' ? 0x00ffff : 0xffff00), emissive: (type === 'shield' ? 0x00ffff : 0xffff00), emissiveIntensity: 0.8 });
+            const p = new THREE.Mesh(new THREE.OctahedronGeometry(0.7), mat);
+            p.position.copy(pos); p.userData = { type: type }; scene.add(p); powerups.push(p);
         }
 
         function spawnBoss() {
-            bossActive = true; missionProgress = 100;
+            bossActive = true; missionProgress = 100; borgLaserTimer = 0;
             document.getElementById('boss-hud').classList.remove('hidden');
             document.getElementById('objective-title').innerText = "OBJECTIVE: DESTROY THE BORG CUBE";
             document.getElementById('objective-title').classList.add('text-red-400');
             document.getElementById('warp-val').innerText = "DISENGAGED";
             document.getElementById('warp-val').classList.add('text-red-500');
 
-            const bossMat = borgTexture ? new THREE.MeshStandardMaterial({ map: borgTexture, metalness: 0.2, roughness: 0.9 }) : new THREE.MeshStandardMaterial({ color: 0x228833, wireframe: true });
-            boss = new THREE.Mesh(new THREE.BoxGeometry(15, 15, 15), bossMat);
-            boss.position.set(0, 0, -120); scene.add(boss);
+            const bossMat = borgTexture ? new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x228833, wireframe: true });
+            boss = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), bossMat);
+            boss.position.set(0, 1.5, -45); 
+            scene.add(boss);
         }
 
         function sectorComplete() {
@@ -267,7 +293,7 @@
                 if (keys['ArrowUp'] || keys['KeyW']) targetY = Math.min(targetY + 0.2, 4);
                 if (keys['ArrowDown'] || keys['KeyS']) targetY = Math.max(targetY - 0.2, -4);
 
-                let speed = 0.6;
+                let speed = 0;
                 if (!bossActive) {
                     missionProgress += (0.05 + (sectorCount * 0.01));
                     warpFactor = 1 + (sectorCount - 1) * 3;
@@ -280,8 +306,16 @@
                         if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 120, ry = (Math.random() - 0.5) * 120, rz = -250; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
                     }
                 } else {
+                    // FULL DROP OUT OF WARP: Stars are completely static dots in normal space
                     const positions = starGeo.attributes.position.array;
-                    for (let i = 0; i < positions.length; i += 6) { positions[i+5] = positions[i+2] - 0.5; }
+                    for (let i = 0; i < positions.length; i += 6) { 
+                        positions[i+5] = positions[i+2]; // zero out tail length so they aren't streaks
+                    }
+                    
+                    borgLaserTimer++;
+                    if (borgLaserTimer % 45 === 0) {
+                        fireBorgLaser();
+                    }
                 }
                 document.getElementById('mission-bar').style.width = missionProgress + '%';
                 starGeo.attributes.position.needsUpdate = true;
@@ -292,25 +326,81 @@
                 if (rapidFireActive) { rapidFireTimer -= 1; if (rapidFireTimer <= 0) { rapidFireActive = false; document.getElementById('powerup-hud').classList.add('hidden'); } }
 
                 if (bossActive && boss) {
-                    if (boss.position.z < -25) boss.position.z += 0.4;
-                    boss.rotation.y += 0.005; boss.rotation.x += 0.003;
-                    if (boss.position.distanceTo(playerGroup.position) < 8.0) { shields -= 50; document.getElementById('shield-bar').style.width = shields + '%'; playSound('explosion'); if (shields <= 0) endGame(); }
                     for (let j = lasers.length - 1; j >= 0; j--) {
-                        if (boss.position.distanceTo(lasers[j].position) < 8.0) { playSound('explosion'); bossHealth -= (rapidFireActive ? 2 : 1); document.getElementById('boss-health-bar').style.width = bossHealth + '%'; scene.remove(lasers[j]); lasers.splice(j, 1); if (bossHealth <= 0) { scene.remove(boss); boss = null; sectorComplete(); } break; }
+                        if (boss.position.distanceTo(lasers[j].position) < 7.0) { playSound('explosion'); bossHealth -= (rapidFireActive ? 3 : 2); document.getElementById('boss-health-bar').style.width = bossHealth + '%'; scene.remove(lasers[j]); lasers.splice(j, 1); if (bossHealth <= 0) { scene.remove(boss); boss = null; sectorComplete(); } break; }
+                    }
+                }
+
+                for (let i = borgLasers.length - 1; i >= 0; i--) {
+                    borgLasers[i].position.z += 1.2;
+                    if (borgLasers[i].position.distanceTo(playerGroup.position) < 1.8) {
+                        playSound('explosion');
+                        shields -= 20;
+                        document.getElementById('shield-bar').style.width = shields + '%';
+                        scene.remove(borgLasers[i]);
+                        borgLasers.splice(i, 1);
+                        if (shields <= 0) endGame();
+                        continue;
+                    }
+                    if (borgLasers[i].position.z > 15) {
+                        scene.remove(borgLasers[i]);
+                        borgLasers.splice(i, 1);
                     }
                 }
 
                 for (let i = lasers.length - 1; i >= 0; i--) { lasers[i].position.z -= 3; if (lasers[i].position.z < -100) { scene.remove(lasers[i]); lasers.splice(i, 1); } }
 
-                for (let i = powerups.length - 1; i >= 0; i--) { const p = powerups[i]; p.position.z += speed; p.rotation.y += 0.05; if (p.position.distanceTo(playerGroup.position) < 1.8) { playSound('powerup'); score += 500; if (p.userData.type === 'shield') { shields = Math.min(shields + 25, 100); document.getElementById('shield-bar').style.width = shields + '%'; } else if (p.userData.type === 'rapidfire') { rapidFireActive = true; rapidFireTimer = 420; document.getElementById('powerup-hud').classList.remove('hidden'); } scene.remove(p); powerups.splice(i, 1); continue; } if (p.position.z > 10) { scene.remove(p); powerups.splice(i, 1); } }
+                for (let i = powerups.length - 1; i >= 0; i--) { 
+                    const p = powerups[i]; p.position.z += speed; p.rotation.y += 0.05; 
+                    if (p.position.distanceTo(playerGroup.position) < 2.0) { 
+                        playSound('powerup'); score += 500; 
+                        if (p.userData.type === 'shield') { shields = Math.min(shields + 25, 100); document.getElementById('shield-bar').style.width = shields + '%'; } 
+                        else if (p.userData.type === 'rapidfire') { rapidFireActive = true; rapidFireTimer = 420; document.getElementById('powerup-hud').classList.remove('hidden'); } 
+                        scene.remove(p); powerups.splice(i, 1); continue; 
+                    } 
+                    if (p.position.z > 10) { scene.remove(p); powerups.splice(i, 1); } 
+                }
 
-                for (let i = enemies.length - 1; i >= 0; i--) { const en = enemies[i]; en.position.z += speed + 0.1; en.rotation.x += en.userData.rotSpeed.x; en.rotation.y += en.userData.rotSpeed.y; if (en.position.distanceTo(playerGroup.position) < 1.5) { playSound('explosion'); shields -= 25; document.getElementById('shield-bar').style.width = shields + '%'; scene.remove(en); enemies.splice(i, 1); if (shields <= 0) endGame(); continue; } let destroyed = false; for (let j = lasers.length - 1; j >= 0; j--) { if (en.position.distanceTo(lasers[j].position) < 1.2) { playSound('explosion'); score += 150; if (Math.random() < 0.2) spawnPowerup(en.position, (Math.random() < 0.6 ? 'rapidfire' : 'shield')); scene.remove(en); enemies.splice(i, 1); scene.remove(lasers[j]); lasers.splice(j, 1); destroyed = true; break; } } if (destroyed) continue; if (en.position.z > 10) { scene.remove(en); enemies.splice(i, 1); } }
+                if (!bossActive) {
+                    for (let i = enemies.length - 1; i >= 0; i--) { 
+                        const en = enemies[i]; en.position.z += speed + 0.1; 
+                        en.rotation.x += en.userData.rotSpeed.x; en.rotation.y += en.userData.rotSpeed.y; 
+                        if (en.position.distanceTo(playerGroup.position) < 1.5) { 
+                            playSound('explosion'); shields -= 25; document.getElementById('shield-bar').style.width = shields + '%'; 
+                            scene.remove(en); enemies.splice(i, 1); if (shields <= 0) endGame(); continue; 
+                        } 
+                        let destroyed = false; 
+                        for (let j = lasers.length - 1; j >= 0; j--) { 
+                            if (en.position.distanceTo(lasers[j].position) < 1.5) { 
+                                playSound('explosion'); score += 150; 
+                                if (Math.random() < 0.4) spawnPowerup(en.position, (Math.random() < 0.5 ? 'rapidfire' : 'shield')); 
+                                scene.remove(en); enemies.splice(i, 1); scene.remove(lasers[j]); lasers.splice(j, 1); destroyed = true; break; 
+                            } 
+                        } 
+                        if (destroyed) continue; 
+                        if (en.position.z > 10) { scene.remove(en); enemies.splice(i, 1); } 
+                    }
+                }
             }
             renderer.render(scene, camera);
         }
 
-        function startGame() { initAudio(); score = 0; shields = 100; warpFactor = 1; missionProgress = 0; bossActive = false; if (boss) { scene.remove(boss); boss = null; } targetX = 0; targetY = 0; playerGroup.position.set(0, 0, 0); document.getElementById('shield-bar').style.width = '100%'; document.getElementById('mission-bar').style.width = '0%'; document.getElementById('boss-hud').classList.add('hidden'); document.getElementById('menu-screen').classList.add('hidden'); document.getElementById('final-score-container').classList.add('hidden'); enemies.forEach(e => scene.remove(e)); enemies = []; lasers.forEach(l => scene.remove(l)); lasers = []; powerups.forEach(p => scene.remove(p)); powerups = []; gameActive = true; }
-        function endGame() { gameActive = false; document.getElementById('final-score').innerText = score; document.getElementById('final-score-container').classList.remove('hidden'); document.getElementById('start-btn').innerText = 'RE-ENGAGE WARP DRIVE'; document.getElementById('menu-screen').classList.remove('hidden'); }
+        function startGame() { 
+            initAudio(); score = 0; shields = 100; warpFactor = 1; missionProgress = 0; bossActive = false; 
+            if (boss) { scene.remove(boss); boss = null; } 
+            borgLasers.forEach(bl => scene.remove(bl)); borgLasers = [];
+            targetX = 0; targetY = 0; playerGroup.position.set(0, 0, 0); 
+            document.getElementById('shield-bar').style.width = '100%'; 
+            document.getElementById('mission-bar').style.width = '0%'; 
+            document.getElementById('boss-hud').classList.add('hidden'); 
+            document.getElementById('menu-screen').classList.add('hidden'); 
+            document.getElementById('final-score-container').classList.add('hidden'); 
+            enemies.forEach(e => scene.remove(e)); enemies = []; 
+            lasers.forEach(l => scene.remove(l)); lasers = []; 
+            powerups.forEach(p => scene.remove(p)); powerups = []; 
+            gameActive = true; 
+        }
+        function endGame() { gameActive = false; document.getElementById('final-score').innerText = score; document.getElementById('final-score-container').classList.add('hidden'); document.getElementById('start-btn').innerText = 'RE-ENGAGE WARP DRIVE'; document.getElementById('menu-screen').classList.remove('hidden'); }
         document.getElementById('start-btn').addEventListener('click', startGame);
         document.getElementById('start-btn').addEventListener('touchend', (e) => { e.preventDefault(); startGame(); });
         window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
