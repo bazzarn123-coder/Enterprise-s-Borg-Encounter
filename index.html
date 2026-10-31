@@ -53,7 +53,7 @@
 
         <!-- Bottom Notification -->
         <div class="text-center pb-2 flex flex-col items-center">
-            <p class="text-cyan-400/60 text-[10px] sm:text-xs tracking-widest">DRAG SCREEN TO STEER | TAP TO FIRE</p>
+            <p class="text-cyan-400/60 text-[10px] sm:text-xs tracking-widest">DRAG ANYWHERE TO STEER | TAP TO FIRE</p>
         </div>
     </div>
 
@@ -227,7 +227,11 @@
         let keys = {};
         let lastShotTime = 0;
 
-        // Mouse Controls
+        // Relative Touch Tracking Variables
+        let touchStartX = 0, touchStartY = 0;
+        let shipStartX = 0, shipStartY = 0;
+
+        // Mouse Controls (Desktop)
         window.addEventListener('mousemove', (e) => {
             if (!gameActive) return;
             const mouseX = (e.clientX / window.innerWidth) * 2 - 1;
@@ -236,19 +240,26 @@
             targetY = mouseY * 4;
         });
 
-        // Touch Controls
+        // Relative Touch Controls (Mobile / Tablet - Prevents finger blocking ship)
+        window.addEventListener('touchstart', (e) => {
+            if (!gameActive) return;
+            if (e.touches.length > 0) {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                shipStartX = targetX;
+                shipStartY = targetY;
+            }
+            fireLaser();
+        }, { passive: true });
+
         window.addEventListener('touchmove', (e) => {
             if (!gameActive || e.touches.length === 0) return;
             const touch = e.touches[0];
-            const touchX = (touch.clientX / window.innerWidth) * 2 - 1;
-            targetX = touchX * 6;
-            const touchY = -(touch.clientY / window.innerHeight) * 2 + 1;
-            targetY = touchY * 4;
-        }, { passive: true });
-
-        window.addEventListener('touchstart', (e) => {
-            if (!gameActive) return;
-            fireLaser();
+            const deltaX = (touch.clientX - touchStartX) * 0.025;
+            const deltaY = (touch.clientY - touchStartY) * 0.025;
+            
+            targetX = THREE.MathUtils.clamp(shipStartX + deltaX, -6, 6);
+            targetY = THREE.MathUtils.clamp(shipStartY - deltaY, -3.5, 3.5);
         }, { passive: true });
 
         // Keyboard Controls
@@ -309,7 +320,7 @@
                 playerGroup.position.y += (targetY - playerGroup.position.y) * 0.1;
                 playerGroup.rotation.z = (playerGroup.position.x - targetX) * -0.05;
 
-                // POSITION-MAPPED BLENDING (Shifted Upward for Center -> Bottom Transition)
+                // POSITION-MAPPED BLENDING (Center-to-Bottom Shifted Much Higher: 0.70 to 0.95)
                 if (shipMesh1 && shipMesh2 && centerTexture && topTexture && bottomTexture) {
                     const y = playerGroup.position.y;
                     let texA = centerTexture, texB = centerTexture, mix = 0;
@@ -324,14 +335,14 @@
                         texA = topTexture; texB = centerTexture;
                         mix = (y - (-0.6)) / (-0.2 - (-0.6));
                         targetTilt = THREE.MathUtils.lerp(-0.35, 0, mix);
-                    } else if (y >= -0.2 && y <= 0.35) {
-                        // Extended Center Dead Zone (stays center longer when moving up)
+                    } else if (y >= -0.2 && y <= 0.70) {
+                        // Extended Center Dead Zone (stays center almost all the way up)
                         texA = centerTexture; texB = centerTexture; mix = 0;
                         targetTilt = 0;
-                    } else if (y > 0.35 && y < 0.75) {
-                        // Blending Center -> Bottom (Shifted higher up)
+                    } else if (y > 0.70 && y < 0.95) {
+                        // Blending Center -> Bottom (Triggered near the top)
                         texA = centerTexture; texB = bottomTexture;
-                        mix = (y - 0.35) / (0.75 - 0.35);
+                        mix = (y - 0.70) / (0.95 - 0.70);
                         targetTilt = THREE.MathUtils.lerp(0, 0.35, mix);
                     } else {
                         // Fully Bottom View
