@@ -68,7 +68,7 @@
 
         <!-- Bottom Notification -->
         <div class="text-center pb-2 flex flex-col items-center">
-            <p class="text-cyan-400/60 text-[9px] sm:text-xs tracking-widest">DRAG ANYWHERE TO STEER | TAP TO FIRE</p>
+            <p class="text-cyan-400/60 text-[9px] sm:text-xs tracking-widest">FOLLOW ERRATIC ENERGY STREAM TO BUILD SHIELDS | TAP TO FIRE</p>
         </div>
     </div>
 
@@ -76,7 +76,7 @@
     <div id="menu-screen" class="absolute inset-0 z-25 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 pointer-events-auto">
         <div class="hud-glass p-6 sm:p-8 rounded-2xl max-w-md w-full border border-cyan-500/50">
             <h1 id="menu-title" class="text-2xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2 tracking-wider">STARFLEET ASSAULT</h1>
-            <p id="menu-desc" class="text-cyan-200/70 text-xs sm:text-sm mb-6">Sector 1 objective: Navigate to the subspace rendezvous point and defeat any threats.</p>
+            <p id="menu-desc" class="text-cyan-200/70 text-xs sm:text-sm mb-6">Sector 1 objective: Navigate warp, follow shield energy streams, and defeat the Borg threat.</p>
             
             <div id="final-score-container" class="hidden mb-6">
                 <p class="text-xs text-cyan-300/70">MISSION REPORT - FINAL SCORE</p>
@@ -101,7 +101,7 @@
             if (type === 'laser') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.15); gain.gain.setValueAtTime(0.15, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.15); osc.start(now); osc.stop(now + 0.15); }
             else if (type === 'borg-laser') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(80, now + 0.3); gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
             else if (type === 'explosion') { osc.type = 'square'; osc.frequency.setValueAtTime(120, now); osc.frequency.linearRampToValueAtTime(30, now + 0.4); gain.gain.setValueAtTime(0.25, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.4); osc.start(now); osc.stop(now + 0.4); }
-            else if (type === 'powerup') { osc.type = 'sine'; osc.frequency.setValueAtTime(440, now); osc.frequency.exponentialRampToValueAtTime(880, now + 0.1); osc.frequency.exponentialRampToValueAtTime(1320, now + 0.2); gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
+            else if (type === 'shield-charge') { osc.type = 'sine'; osc.frequency.setValueAtTime(520, now); osc.frequency.exponentialRampToValueAtTime(1046.5, now + 0.15); gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.15); osc.start(now); osc.stop(now + 0.15); }
             else if (type === 'victory') { osc.type = 'triangle'; osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(554.37, now + 0.2); osc.frequency.setValueAtTime(659.25, now + 0.4); gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.8); osc.start(now); osc.stop(now + 0.8); }
         }
 
@@ -181,13 +181,28 @@
         const starField = new THREE.LineSegments(starGeo, starMat);
         scene.add(starField);
 
+        // --- SHIELD RECHARGE STREAM SYSTEM ---
+        const streamNodeCount = 40;
+        const streamGeo = new THREE.BufferGeometry();
+        const streamPositions = new Float32Array(streamNodeCount * 3);
+        for(let i = 0; i < streamNodeCount; i++) {
+            streamPositions[i*3] = Math.sin(i * 0.3) * 4;
+            streamPositions[i*3+1] = Math.cos(i * 0.2) * 2;
+            streamPositions[i*3+2] = -i * 5;
+        }
+        streamGeo.setAttribute('position', new THREE.BufferAttribute(streamPositions, 3));
+        const streamMat = new THREE.PointsMaterial({ color: 0x00ffff, size: 0.6, transparent: true, opacity: 0.9 });
+        const shieldStream = new THREE.Points(streamGeo, streamMat);
+        scene.add(shieldStream);
+
         // --- GAME STATE ---
         let gameActive = false, score = 0, shields = 100, warpFactor = 1, missionProgress = 0, sectorCount = 1;
-        let bossActive = false, boss = null, bossHealth = 100, borgLaserTimer = 0;
+        let bossActive = false, boss = null, bossHealth = 300, maxBossHealth = 300, borgLaserTimer = 0; // Much higher Borg health
         let rapidFireActive = false, rapidFireTimer = 0;
-        let lasers = [], borgLasers = [], enemies = [], powerups = [];
+        let lasers = [], borgLasers = [], enemies = [];
         let targetX = 0, targetY = 0, keys = {}, lastShotTime = 0;
         let touchStartX = 0, touchStartY = 0, shipStartX = 0, shipStartY = 0;
+        let streamWaveOffset = 0;
 
         window.addEventListener('mousemove', (e) => { if (!gameActive) return; const mouseX = (e.clientX / window.innerWidth) * 2 - 1; targetX = mouseX * 6; const mouseY = -(e.clientY / window.innerHeight) * 2 + 1; targetY = mouseY * 4; });
         window.addEventListener('touchstart', (e) => { if (!gameActive) return; if (e.touches.length > 0) { touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; shipStartX = targetX; shipStartY = targetY; } fireLaser(); }, { passive: true });
@@ -233,14 +248,9 @@
         }
         setInterval(spawnEnemy, 900);
 
-        function spawnPowerup(pos, type) {
-            const mat = new THREE.MeshStandardMaterial({ color: (type === 'shield' ? 0x00ffff : 0xffff00), emissive: (type === 'shield' ? 0x00ffff : 0xffff00), emissiveIntensity: 0.9 });
-            const p = new THREE.Mesh(new THREE.OctahedronGeometry(0.9), mat);
-            p.position.copy(pos); p.userData = { type: type }; scene.add(p); powerups.push(p);
-        }
-
         function spawnBoss() {
             bossActive = true; missionProgress = 100; borgLaserTimer = 0;
+            bossHealth = maxBossHealth;
             document.getElementById('boss-hud').classList.remove('hidden');
             document.getElementById('objective-title').innerText = "OBJECTIVE: DESTROY THE BORG CUBE";
             document.getElementById('objective-title').classList.add('text-red-400');
@@ -249,6 +259,7 @@
 
             enemies.forEach(e => scene.remove(e));
             enemies = [];
+            shieldStream.visible = false; // Hide shield stream during boss fight
 
             const bossMat = borgTexture ? new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x228833, wireframe: true });
             boss = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), bossMat);
@@ -257,7 +268,8 @@
         }
 
         function sectorComplete() {
-            bossActive = false; bossHealth = 100; missionProgress = 0; sectorCount += 1;
+            bossActive = false; missionProgress = 0; sectorCount += 1;
+            maxBossHealth += 100; // Increase difficulty each sector
             document.getElementById('boss-hud').classList.add('hidden');
             document.getElementById('boss-health-bar').style.width = '100%';
             document.getElementById('objective-title').innerText = "SECTOR " + sectorCount + " PROGRESS";
@@ -266,7 +278,8 @@
             document.getElementById('warp-val').classList.remove('text-red-500');
             document.getElementById('menu-desc').innerText = "Sector " + sectorCount + " objective: Subspace interference detected. Defeat any Borg flagship forces.";
             rapidFireActive = false; rapidFireTimer = 0; document.getElementById('powerup-hud').classList.add('hidden');
-            playSound('victory'); score += 2500;
+            shieldStream.visible = true;
+            playSound('victory'); score += 3500;
         }
 
         // --- GAME LOOP ---
@@ -308,6 +321,32 @@
                         positions[i+2] += speed; positions[i+5] = positions[i+2] - streakLength;
                         if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 150, ry = (Math.random() - 0.5) * 150, rz = -350; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
                     }
+
+                    // Animate and Move Erratic Shield Stream
+                    streamWaveOffset += 0.03;
+                    const streamPos = shieldStream.geometry.attributes.position.array;
+                    let closeToStream = false;
+                    for(let i = 0; i < streamNodeCount; i++) {
+                        streamPos[i*3+2] += speed;
+                        if (streamPos[i*3+2] > 10) {
+                            streamPos[i*3+2] = -200;
+                            streamPos[i*3] = (Math.sin(streamWaveOffset * 2 + i) * 4.5);
+                            streamPos[i*3+1] = (Math.cos(streamWaveOffset * 1.5 + i) * 2.5);
+                        }
+                        // Check if ship is following the stream nodes
+                        const nodeVector = new THREE.Vector3(streamPos[i*3], streamPos[i*3+1], streamPos[i*3+2]);
+                        if (nodeVector.distanceTo(playerGroup.position) < 2.2) {
+                            closeToStream = true;
+                        }
+                    }
+                    shieldStream.geometry.attributes.position.needsUpdate = true;
+
+                    // Build shields when following stream
+                    if (closeToStream) {
+                        shields = Math.min(shields + 0.3, 100);
+                        document.getElementById('shield-bar').style.width = shields + '%';
+                        if (Math.random() < 0.1) playSound('shield-charge');
+                    }
                 } else {
                     const positions = starGeo.attributes.position.array;
                     for (let i = 0; i < positions.length; i += 6) { 
@@ -333,7 +372,16 @@
 
                 if (bossActive && boss) {
                     for (let j = lasers.length - 1; j >= 0; j--) {
-                        if (boss.position.distanceTo(lasers[j].position) < 8.0) { playSound('explosion'); bossHealth -= (rapidFireActive ? 3 : 2); document.getElementById('boss-health-bar').style.width = bossHealth + '%'; scene.remove(lasers[j]); lasers.splice(j, 1); if (bossHealth <= 0) { scene.remove(boss); boss = null; sectorComplete(); } break; }
+                        if (boss.position.distanceTo(lasers[j].position) < 8.0) { 
+                            playSound('explosion'); 
+                            bossHealth -= (rapidFireActive ? 3 : 2); 
+                            const healthPct = Math.max(0, (bossHealth / maxBossHealth) * 100);
+                            document.getElementById('boss-health-bar').style.width = healthPct + '%'; 
+                            scene.remove(lasers[j]); 
+                            lasers.splice(j, 1); 
+                            if (bossHealth <= 0) { scene.remove(boss); boss = null; sectorComplete(); } 
+                            break; 
+                        }
                     }
                 }
 
@@ -356,18 +404,6 @@
 
                 for (let i = lasers.length - 1; i >= 0; i--) { lasers[i].position.z -= 3; if (lasers[i].position.z < -100) { scene.remove(lasers[i]); lasers.splice(i, 1); } }
 
-                // Increased collection radius and movement speed for power-ups
-                for (let i = powerups.length - 1; i >= 0; i--) { 
-                    const p = powerups[i]; p.position.z += (speed || 0.6); p.rotation.y += 0.05; 
-                    if (p.position.distanceTo(playerGroup.position) < 3.0) { 
-                        playSound('powerup'); score += 500; 
-                        if (p.userData.type === 'shield') { shields = Math.min(shields + 25, 100); document.getElementById('shield-bar').style.width = shields + '%'; } 
-                        else if (p.userData.type === 'rapidfire') { rapidFireActive = true; rapidFireTimer = 420; document.getElementById('powerup-hud').classList.remove('hidden'); } 
-                        scene.remove(p); powerups.splice(i, 1); continue; 
-                    } 
-                    if (p.position.z > 10) { scene.remove(p); powerups.splice(i, 1); } 
-                }
-
                 if (!bossActive) {
                     for (let i = enemies.length - 1; i >= 0; i--) { 
                         const en = enemies[i]; en.position.z += speed + 0.1; 
@@ -380,8 +416,6 @@
                         for (let j = lasers.length - 1; j >= 0; j--) { 
                             if (en.position.distanceTo(lasers[j].position) < 1.5) { 
                                 playSound('explosion'); score += 150; 
-                                // Higher 60% chance to drop a power-up when destroying enemies during warp
-                                if (Math.random() < 0.6) spawnPowerup(en.position, (Math.random() < 0.5 ? 'rapidfire' : 'shield')); 
                                 scene.remove(en); enemies.splice(i, 1); scene.remove(lasers[j]); lasers.splice(j, 1); destroyed = true; break; 
                             } 
                         } 
@@ -398,6 +432,7 @@
             if (boss) { scene.remove(boss); boss = null; } 
             borgLasers.forEach(bl => scene.remove(bl)); borgLasers = [];
             targetX = 0; targetY = 0; playerGroup.position.set(0, 0, 0); 
+            shieldStream.visible = true;
             document.getElementById('shield-bar').style.width = '100%'; 
             document.getElementById('mission-bar').style.width = '0%'; 
             document.getElementById('boss-hud').classList.add('hidden'); 
@@ -405,7 +440,6 @@
             document.getElementById('final-score-container').classList.add('hidden'); 
             enemies.forEach(e => scene.remove(e)); enemies = []; 
             lasers.forEach(l => scene.remove(l)); lasers = []; 
-            powerups.forEach(p => scene.remove(p)); powerups = []; 
             gameActive = true; 
         }
         function endGame() { gameActive = false; document.getElementById('final-score').innerText = score; document.getElementById('final-score-container').classList.add('hidden'); document.getElementById('start-btn').innerText = 'RE-ENGAGE WARP DRIVE'; document.getElementById('menu-screen').classList.remove('hidden'); }
