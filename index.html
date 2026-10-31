@@ -33,6 +33,10 @@
                     </div>
                 </div>
                 <div>
+                    <p class="text-[9px] sm:text-xs text-cyan-300/75 tracking-widest">TORPEDOES</p>
+                    <p id="torpedo-val" class="text-base sm:text-xl font-black text-red-400">0</p>
+                </div>
+                <div>
                     <p class="text-[9px] sm:text-xs text-cyan-300/75 tracking-widest">SCORE</p>
                     <p id="score-val" class="text-base sm:text-xl font-black text-white">000000</p>
                 </div>
@@ -63,7 +67,7 @@
 
         <!-- Bottom Notification -->
         <div class="text-center pb-2 flex flex-col items-center">
-            <p class="text-cyan-400/60 text-[9px] sm:text-xs tracking-widest">FOLLOW SHIELD STREAM TO RECHARGE SHIELDS | TAP TO FIRE</p>
+            <p class="text-cyan-400/60 text-[9px] sm:text-xs tracking-widest">FOLLOW SHIELD STREAM | COLLECT PHOTON TORPEDOES | TAP TO FIRE</p>
         </div>
     </div>
 
@@ -71,7 +75,7 @@
     <div id="menu-screen" class="absolute inset-0 z-25 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 pointer-events-auto">
         <div class="hud-glass p-6 sm:p-8 rounded-2xl max-w-md w-full border border-cyan-500/50">
             <h1 id="menu-title" class="text-2xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2 tracking-wider">STARFLEET ASSAULT</h1>
-            <p id="menu-desc" class="text-cyan-200/70 text-xs sm:text-sm mb-6">Sector 1 objective: Navigate warp, follow shield streams, and defeat the Borg threat.</p>
+            <p id="menu-desc" class="text-cyan-200/70 text-xs sm:text-sm mb-6">Relaxed cruiser mode: Navigate warp, follow shield streams, collect torpedoes, and defeat the Borg.</p>
             
             <div id="final-score-container" class="hidden mb-6">
                 <p class="text-xs text-cyan-300/70">MISSION REPORT - FINAL SCORE</p>
@@ -97,6 +101,7 @@
             else if (type === 'borg-laser') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(80, now + 0.3); gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
             else if (type === 'explosion') { osc.type = 'square'; osc.frequency.setValueAtTime(120, now); osc.frequency.linearRampToValueAtTime(30, now + 0.4); gain.gain.setValueAtTime(0.25, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.4); osc.start(now); osc.stop(now + 0.4); }
             else if (type === 'shield-charge') { osc.type = 'sine'; osc.frequency.setValueAtTime(520, now); osc.frequency.exponentialRampToValueAtTime(1046.5, now + 0.15); gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.15); osc.start(now); osc.stop(now + 0.15); }
+            else if (type === 'torpedo-pickup') { osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(600, now + 0.2); gain.gain.setValueAtTime(0.25, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.2); osc.start(now); osc.stop(now + 0.2); }
             else if (type === 'victory') { osc.type = 'triangle'; osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(554.37, now + 0.2); osc.frequency.setValueAtTime(659.25, now + 0.4); gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.8); osc.start(now); osc.stop(now + 0.8); }
         }
 
@@ -191,10 +196,10 @@
         scene.add(shieldStream);
 
         // --- GAME STATE ---
-        let gameActive = false, score = 0, shields = 100, warpFactor = 1, missionProgress = 0, sectorCount = 1;
+        let gameActive = false, score = 0, shields = 100, photonTorpedoes = 0, warpFactor = 1, missionProgress = 0, sectorCount = 1;
         let bossActive = false, boss = null, bossHealth = 300, maxBossHealth = 300, borgLaserTimer = 0;
         let rapidFireActive = false, rapidFireTimer = 0;
-        let lasers = [], borgLasers = [], enemies = [];
+        let lasers = [], borgLasers = [], torpedoPickups = [];
         let targetX = 0, targetY = 0, keys = {}, lastShotTime = 0;
         let touchStartX = 0, touchStartY = 0, shipStartX = 0, shipStartY = 0;
         let streamWaveOffset = 0;
@@ -227,21 +232,16 @@
             borgLasers.push(bLaser);
         }
 
-        function spawnEnemy() {
+        // Spawn fewer Photon Torpedo collection power-ups instead of red pyramids
+        function spawnTorpedoPickup() {
             if (!gameActive || bossActive) return;
-            const isDrone = Math.random() > 0.4;
-            let enemy;
-            if (isDrone) {
-                enemy = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.5, 8), new THREE.MeshStandardMaterial({ color: 0xff2222, metalness: 0.8 }));
-                enemy.geometry.rotateX(Math.PI / 2);
-            } else {
-                enemy = new THREE.Mesh(new THREE.DodecahedronGeometry(1.0, 1), new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.9, metalness: 0.1, flatShading: true }));
-            }
-            enemy.position.set((Math.random() - 0.5) * 12, (Math.random() - 0.5) * 8, -100);
-            enemy.userData = { rotSpeed: new THREE.Vector3((Math.random()-0.5)*0.08, (Math.random()-0.5)*0.08, 0) };
-            scene.add(enemy); enemies.push(enemy);
+            const pickupMat = new THREE.MeshStandardMaterial({ color: 0xff5500, emissive: 0xff3300, emissiveIntensity: 0.8, roughness: 0.2 });
+            const pickup = new THREE.Mesh(new THREE.OctahedronGeometry(0.8), pickupMat);
+            pickup.position.set((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 6, -120);
+            scene.add(pickup);
+            torpedoPickups.push(pickup);
         }
-        setInterval(spawnEnemy, 900);
+        setInterval(spawnTorpedoPickup, 4500); // Rare, spaced-out spawn rate
 
         function spawnBoss() {
             bossActive = true; missionProgress = 100; borgLaserTimer = 0;
@@ -252,9 +252,9 @@
             document.getElementById('warp-val').innerText = "DISENGAGED";
             document.getElementById('warp-val').classList.add('text-red-500');
 
-            enemies.forEach(e => scene.remove(e));
-            enemies = [];
-            shieldStream.visible = false; // Hide shield stream during boss fight
+            torpedoPickups.forEach(tp => scene.remove(tp));
+            torpedoPickups = [];
+            shieldStream.visible = false; 
 
             const bossMat = borgTexture ? new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x228833, wireframe: true });
             boss = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), bossMat);
@@ -274,9 +274,7 @@
             document.getElementById('menu-desc').innerText = "Sector " + sectorCount + " objective: Subspace interference detected. Defeat any Borg flagship forces.";
             rapidFireActive = false; rapidFireTimer = 0; document.getElementById('powerup-hud').classList.add('hidden');
             
-            // Re-enable shield stream for the new sector warp
             shieldStream.visible = true;
-
             playSound('victory'); score += 3500;
         }
 
@@ -311,21 +309,20 @@
                 const positions = starGeo.attributes.position.array;
 
                 if (!bossActive) {
-                    // Ensure shield stream is visible during warp across all sectors
                     shieldStream.visible = true;
 
-                    missionProgress += (0.05 + (sectorCount * 0.01));
-                    warpFactor = 1 + (sectorCount - 1) * 3;
+                    missionProgress += (0.02 + (sectorCount * 0.005)); 
+                    warpFactor = 1 + (sectorCount - 1) * 2;
                     if (missionProgress >= 100) spawnBoss();
                     
-                    const streakLength = 1.5 + (warpFactor * 0.8); speed = 0.6 + (warpFactor * 0.4);
+                    const streakLength = 1.0 + (warpFactor * 0.4); speed = 0.3 + (warpFactor * 0.2); 
                     for (let i = 0; i < positions.length; i += 6) {
                         positions[i+2] += speed; positions[i+5] = positions[i+2] - streakLength;
                         if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 200, ry = (Math.random() - 0.5) * 200, rz = -400; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
                     }
 
-                    // Animate and Move Smooth Shield Stream
-                    streamWaveOffset += 0.025;
+                    // Slower, smoother shield stream motion
+                    streamWaveOffset += 0.012;
                     const streamPos = shieldStream.geometry.attributes.position.array;
                     let closeToStream = false;
                     for(let i = 0; i < streamNodeCount; i++) {
@@ -337,16 +334,16 @@
                         streamPos[i*3+1] = Math.cos(streamWaveOffset * 0.8 + (i * 0.1)) * 2.5;
 
                         const nodeVector = new THREE.Vector3(streamPos[i*3], streamPos[i*3+1], streamPos[i*3+2]);
-                        if (nodeVector.distanceTo(playerGroup.position) < 2.5) {
+                        if (nodeVector.distanceTo(playerGroup.position) < 2.8) { 
                             closeToStream = true;
                         }
                     }
                     shieldStream.geometry.attributes.position.needsUpdate = true;
 
                     if (closeToStream) {
-                        shields = Math.min(shields + 0.4, 100);
+                        shields = Math.min(shields + 0.5, 100);
                         document.getElementById('shield-bar').style.width = shields + '%';
-                        if (Math.random() < 0.15) playSound('shield-charge');
+                        if (Math.random() < 0.1) playSound('shield-charge');
                     }
                 } else {
                     for (let i = 0; i < positions.length; i += 6) { 
@@ -354,18 +351,18 @@
                     }
                     
                     if (boss && boss.position.z < -30) {
-                        boss.position.z += 0.25; 
+                        boss.position.z += 0.12; 
                     }
 
                     borgLaserTimer++;
-                    if (borgLaserTimer % 40 === 0) {
+                    if (borgLaserTimer % 75 === 0) { 
                         fireBorgLaser();
                     }
                 }
                 document.getElementById('mission-bar').style.width = missionProgress + '%';
                 starGeo.attributes.position.needsUpdate = true;
 
-                score += (bossActive ? 5 : 1);
+                score += (bossActive ? 2 : 1);
                 document.getElementById('score-val').innerText = String(score).padStart(6, '0');
 
                 if (rapidFireActive) { rapidFireTimer -= 1; if (rapidFireTimer <= 0) { rapidFireActive = false; document.getElementById('powerup-hud').classList.add('hidden'); } }
@@ -386,10 +383,10 @@
                 }
 
                 for (let i = borgLasers.length - 1; i >= 0; i--) {
-                    borgLasers[i].position.z += 1.2;
+                    borgLasers[i].position.z += 0.7; 
                     if (borgLasers[i].position.distanceTo(playerGroup.position) < 1.8) {
                         playSound('explosion');
-                        shields -= 20;
+                        shields -= 15;
                         document.getElementById('shield-bar').style.width = shields + '%';
                         scene.remove(borgLasers[i]);
                         borgLasers.splice(i, 1);
@@ -402,25 +399,25 @@
                     }
                 }
 
-                for (let i = lasers.length - 1; i >= 0; i--) { lasers[i].position.z -= 3; if (lasers[i].position.z < -100) { scene.remove(lasers[i]); lasers.splice(i, 1); } }
+                for (let i = lasers.length - 1; i >= 0; i--) { lasers[i].position.z -= 2.5; if (lasers[i].position.z < -100) { scene.remove(lasers[i]); lasers.splice(i, 1); } }
 
                 if (!bossActive) {
-                    for (let i = enemies.length - 1; i >= 0; i--) { 
-                        const en = enemies[i]; en.position.z += speed + 0.1; 
-                        en.rotation.x += en.userData.rotSpeed.x; en.rotation.y += en.userData.rotSpeed.y; 
-                        if (en.position.distanceTo(playerGroup.position) < 1.5) { 
-                            playSound('explosion'); shields -= 25; document.getElementById('shield-bar').style.width = shields + '%'; 
-                            scene.remove(en); enemies.splice(i, 1); if (shields <= 0) endGame(); continue; 
-                        } 
-                        let destroyed = false; 
-                        for (let j = lasers.length - 1; j >= 0; j--) { 
-                            if (en.position.distanceTo(lasers[j].position) < 1.5) { 
-                                playSound('explosion'); score += 150; 
-                                scene.remove(en); enemies.splice(i, 1); scene.remove(lasers[j]); lasers.splice(j, 1); destroyed = true; break; 
-                            } 
-                        } 
-                        if (destroyed) continue; 
-                        if (en.position.z > 10) { scene.remove(en); enemies.splice(i, 1); } 
+                    for (let i = torpedoPickups.length - 1; i >= 0; i--) {
+                        const tp = torpedoPickups[i];
+                        tp.position.z += speed + 0.05;
+                        tp.rotation.y += 0.03;
+                        if (tp.position.distanceTo(playerGroup.position) < 2.0) {
+                            playSound('torpedo-pickup');
+                            photonTorpedoes += 1;
+                            document.getElementById('torpedo-val').innerText = photonTorpedoes;
+                            scene.remove(tp);
+                            torpedoPickups.splice(i, 1);
+                            continue;
+                        }
+                        if (tp.position.z > 10) {
+                            scene.remove(tp);
+                            torpedoPickups.splice(i, 1);
+                        }
                     }
                 }
             }
@@ -428,7 +425,8 @@
         }
 
         function startGame() { 
-            initAudio(); score = 0; shields = 100; warpFactor = 1; missionProgress = 0; bossActive = false; 
+            initAudio(); score = 0; shields = 100; photonTorpedoes = 0; warpFactor = 1; missionProgress = 0; bossActive = false; 
+            document.getElementById('torpedo-val').innerText = photonTorpedoes;
             if (boss) { scene.remove(boss); boss = null; } 
             borgLasers.forEach(bl => scene.remove(bl)); borgLasers = [];
             targetX = 0; targetY = 0; playerGroup.position.set(0, 0, 0); 
@@ -438,7 +436,7 @@
             document.getElementById('boss-hud').classList.add('hidden'); 
             document.getElementById('menu-screen').classList.add('hidden'); 
             document.getElementById('final-score-container').classList.add('hidden'); 
-            enemies.forEach(e => scene.remove(e)); enemies = []; 
+            torpedoPickups.forEach(tp => scene.remove(tp)); torpedoPickups = []; 
             lasers.forEach(l => scene.remove(l)); lasers = []; 
             gameActive = true; 
         }
