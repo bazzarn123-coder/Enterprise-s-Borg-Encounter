@@ -45,9 +45,25 @@
                 </div>
             </div>
 
+            <!-- Mission Progress / Sector Objective -->
+            <div class="hud-glass px-4 py-2 sm:px-6 sm:py-3 rounded-xl text-center text-cyan-400 hidden sm:block">
+                <p id="objective-title" class="text-[10px] sm:text-xs text-cyan-300/75 tracking-widest">SECTOR PROGRESS</p>
+                <div class="w-32 bg-slate-800 h-2 rounded-full overflow-hidden mt-1 border border-cyan-500/40">
+                    <div id="mission-bar" class="bg-yellow-400 h-full w-0 transition-all duration-300 shadow-[0_0_10px_#ffaa00]"></div>
+                </div>
+            </div>
+
             <div class="hud-glass px-4 py-2 sm:px-6 sm:py-3 rounded-xl text-center text-cyan-400">
                 <p class="text-[10px] sm:text-xs text-cyan-300/75 tracking-widest">WARP</p>
                 <p id="warp-val" class="text-xl sm:text-2xl font-black text-yellow-400">WARP 1</p>
+            </div>
+        </div>
+
+        <!-- Boss Health Bar (Hidden until boss spawns) -->
+        <div id="boss-hud" class="w-full max-w-md mx-auto hidden pointer-events-auto text-center">
+            <p class="text-xs text-red-400 font-bold tracking-widest mb-1">WARNING: KLINGON BIRD-OF-PREY DETECTED</p>
+            <div class="w-full bg-slate-900 h-3 rounded-full overflow-hidden border border-red-500/60 shadow-[0_0_15px_rgba(255,0,0,0.5)]">
+                <div id="boss-health-bar" class="bg-red-600 h-full w-full transition-all duration-150"></div>
             </div>
         </div>
 
@@ -58,10 +74,10 @@
     </div>
 
     <!-- Start / Game Over Overlay Modal -->
-    <div id="menu-screen" class="absolute inset-0 z-20 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 pointer-events-auto">
+    <div id="menu-screen" class="absolute inset-0 z-25 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 pointer-events-auto">
         <div class="hud-glass p-6 sm:p-8 rounded-2xl max-w-md w-full border border-cyan-500/50">
-            <h1 class="text-2xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2 tracking-wider">STARFLEET ASSAULT</h1>
-            <p class="text-cyan-200/70 text-xs sm:text-sm mb-6">Command your Starship through hostile asteroid fields and rogue drone sectors.</p>
+            <h1 id="menu-title" class="text-2xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2 tracking-wider">STARFLEET ASSAULT</h1>
+            <p id="menu-desc" class="text-cyan-200/70 text-xs sm:text-sm mb-6">Reach 100% sector progress to trigger and defeat the enemy flagship!</p>
             
             <div id="final-score-container" class="hidden mb-6">
                 <p class="text-xs text-cyan-300/70">MISSION REPORT - FINAL SCORE</p>
@@ -106,6 +122,15 @@
                 gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
                 osc.start(now);
                 osc.stop(now + 0.4);
+            } else if (type === 'victory') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.setValueAtTime(554.37, now + 0.2);
+                osc.frequency.setValueAtTime(659.25, now + 0.4);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.8);
+                osc.start(now);
+                osc.stop(now + 0.8);
             }
         }
 
@@ -187,26 +212,13 @@
                         loadTransparentTexture('ship bottom.png', centerTexture, (texBottom) => {
                             bottomTexture = texBottom;
 
-                            // Setup dual meshes once textures are ready
                             const shipGeo = new THREE.PlaneGeometry(3.6, 1.6);
-                            
-                            material1 = new THREE.MeshBasicMaterial({ 
-                                map: centerTexture, 
-                                transparent: true,
-                                opacity: 1.0,
-                                side: THREE.DoubleSide
-                            });
-
-                            material2 = new THREE.MeshBasicMaterial({ 
-                                map: centerTexture, 
-                                transparent: true,
-                                opacity: 0.0,
-                                side: THREE.DoubleSide
-                            });
+                            material1 = new THREE.MeshBasicMaterial({ map: centerTexture, transparent: true, opacity: 1.0, side: THREE.DoubleSide });
+                            material2 = new THREE.MeshBasicMaterial({ map: centerTexture, transparent: true, opacity: 0.0, side: THREE.DoubleSide });
                             
                             shipMesh1 = new THREE.Mesh(shipGeo, material1);
                             shipMesh2 = new THREE.Mesh(shipGeo, material2);
-                            shipMesh2.position.z = 0.001; // Tiny offset to prevent z-fighting
+                            shipMesh2.position.z = 0.001;
 
                             playerGroup.add(shipMesh1);
                             playerGroup.add(shipMesh2);
@@ -226,13 +238,8 @@
             const y = (Math.random() - 0.5) * 120;
             const z = (Math.random() - 0.5) * 300 - 50;
 
-            starPositions[i] = x;
-            starPositions[i+1] = y;
-            starPositions[i+2] = z;
-
-            starPositions[i+3] = x;
-            starPositions[i+4] = y;
-            starPositions[i+5] = z - 2;
+            starPositions[i] = x; starPositions[i+1] = y; starPositions[i+2] = z;
+            starPositions[i+3] = x; starPositions[i+4] = y; starPositions[i+5] = z - 2;
         }
 
         starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
@@ -240,11 +247,16 @@
         const starField = new THREE.LineSegments(starGeo, starMat);
         scene.add(starField);
 
-        // --- GAME STATE ---
+        // --- GAME STATE & MISSION OBJECTIVES ---
         let gameActive = false;
         let score = 0;
         let shields = 100;
         let warpFactor = 1;
+        let missionProgress = 0; // 0 to 100%
+        let bossActive = false;
+        let boss = null;
+        let bossHealth = 100;
+
         let lasers = [];
         let enemies = [];
         let targetX = 0, targetY = 0;
@@ -255,7 +267,6 @@
         let touchStartX = 0, touchStartY = 0;
         let shipStartX = 0, shipStartY = 0;
 
-        // Mouse Controls (Desktop)
         window.addEventListener('mousemove', (e) => {
             if (!gameActive) return;
             const mouseX = (e.clientX / window.innerWidth) * 2 - 1;
@@ -264,7 +275,6 @@
             targetY = mouseY * 4;
         });
 
-        // Relative Touch Controls (Mobile / Tablet)
         window.addEventListener('touchstart', (e) => {
             if (!gameActive) return;
             if (e.touches.length > 0) {
@@ -286,7 +296,6 @@
             targetY = THREE.MathUtils.clamp(shipStartY - deltaY, -3.5, 3.5);
         }, { passive: true });
 
-        // Keyboard Controls
         window.addEventListener('keydown', (e) => {
             keys[e.code] = true;
             if (e.code === 'Space' && gameActive) fireLaser();
@@ -313,7 +322,7 @@
         }
 
         function spawnEnemy() {
-            if (!gameActive) return;
+            if (!gameActive || bossActive) return;
             const isDrone = Math.random() > 0.4;
             let geo, mat;
 
@@ -335,6 +344,31 @@
 
         setInterval(spawnEnemy, 900);
 
+        function spawnBoss() {
+            bossActive = true;
+            missionProgress = 100;
+            document.getElementById('mission-bar').style.width = '100%';
+            document.getElementById('boss-hud').classList.remove('hidden');
+
+            // Create Boss (Greenish Klingon Bird-of-Prey style geometry)
+            const bossGeo = new THREE.ConeGeometry(2.5, 4, 6);
+            bossGeo.rotateX(Math.PI / 2);
+            const bossMat = new THREE.MeshStandardMaterial({ color: 0x228833, metalness: 0.7, roughness: 0.3 });
+            boss = new THREE.Mesh(bossGeo, bossMat);
+            boss.position.set(0, 0, -120);
+            scene.add(boss);
+        }
+
+        function sectorComplete() {
+            bossActive = false;
+            bossHealth = 100;
+            missionProgress = 0;
+            warpFactor += 1;
+            document.getElementById('boss-hud').classList.add('hidden');
+            playSound('victory');
+            score += 2500; // Bonus points for clearing sector
+        }
+
         // --- GAME LOOP ---
         function animate() {
             requestAnimationFrame(animate);
@@ -344,44 +378,26 @@
                 playerGroup.position.y += (targetY - playerGroup.position.y) * 0.1;
                 playerGroup.rotation.z = (playerGroup.position.x - targetX) * -0.05;
 
-                // WIDELY STRETCHED 5-IMAGE POSITION-MAPPED BLENDING SYSTEM
+                // STRETCHED 5-IMAGE POSITION-MAPPED BLENDING SYSTEM
                 if (shipMesh1 && shipMesh2 && centerTexture && topTexture && midTopTexture && midBottomTexture && bottomTexture) {
                     const y = playerGroup.position.y;
                     let texA = centerTexture, texB = centerTexture, mix = 0;
                     let targetTilt = 0;
 
                     if (y <= -2.5) {
-                        // Fully Top View (Near Bottom of Screen)
-                        texA = topTexture; texB = topTexture; mix = 0;
-                        targetTilt = -0.4;
+                        texA = topTexture; texB = topTexture; mix = 0; targetTilt = -0.4;
                     } else if (y > -2.5 && y <= -1.5) {
-                        // Transition: Top -> Mid-Top (Stretched out)
-                        texA = topTexture; texB = midTopTexture;
-                        mix = (y - (-2.5)) / (-1.5 - (-2.5));
-                        targetTilt = THREE.MathUtils.lerp(-0.4, -0.2, mix);
+                        texA = topTexture; texB = midTopTexture; mix = (y - (-2.5)) / (-1.5 - (-2.5)); targetTilt = THREE.MathUtils.lerp(-0.4, -0.2, mix);
                     } else if (y > -1.5 && y <= -0.5) {
-                        // Transition: Mid-Top -> Center (Stretched out)
-                        texA = midTopTexture; texB = centerTexture;
-                        mix = (y - (-1.5)) / (-0.5 - (-1.5));
-                        targetTilt = THREE.MathUtils.lerp(-0.2, 0, mix);
+                        texA = midTopTexture; texB = centerTexture; mix = (y - (-1.5)) / (-0.5 - (-1.5)); targetTilt = THREE.MathUtils.lerp(-0.2, 0, mix);
                     } else if (y > -0.5 && y <= 1.8) {
-                        // MASSIVE Center Dead Zone: Stays flat center for a huge range of upward movement!
-                        texA = centerTexture; texB = centerTexture; mix = 0;
-                        targetTilt = 0;
+                        texA = centerTexture; texB = centerTexture; mix = 0; targetTilt = 0;
                     } else if (y > 1.8 && y <= 2.6) {
-                        // Transition: Center -> Mid-Bottom (Triggered only high up near the top)
-                        texA = centerTexture; texB = midBottomTexture;
-                        mix = (y - 1.8) / (2.6 - 1.8);
-                        targetTilt = THREE.MathUtils.lerp(0, 0.15, mix);
+                        texA = centerTexture; texB = midBottomTexture; mix = (y - 1.8) / (2.6 - 1.8); targetTilt = THREE.MathUtils.lerp(0, 0.15, mix);
                     } else if (y > 2.6 && y <= 3.2) {
-                        // Transition: Mid-Bottom -> Bottom
-                        texA = midBottomTexture; texB = bottomTexture;
-                        mix = (y - 2.6) / (3.2 - 2.6);
-                        targetTilt = THREE.MathUtils.lerp(0.15, 0.35, mix);
+                        texA = midBottomTexture; texB = bottomTexture; mix = (y - 2.6) / (3.2 - 2.6); targetTilt = THREE.MathUtils.lerp(0.15, 0.35, mix);
                     } else {
-                        // Fully Bottom View (Near Top of Screen)
-                        texA = bottomTexture; texB = bottomTexture; mix = 0;
-                        targetTilt = 0.35;
+                        texA = bottomTexture; texB = bottomTexture; mix = 0; targetTilt = 0.35;
                     }
 
                     material1.map = texA;
@@ -400,9 +416,17 @@
                 if (keys['ArrowUp'] || keys['KeyW']) targetY = Math.min(targetY + 0.2, 4);
                 if (keys['ArrowDown'] || keys['KeyS']) targetY = Math.max(targetY - 0.2, -4);
 
-                // Progressive Warp Factor
+                // Update Mission Objective Progress
+                if (!bossActive) {
+                    missionProgress += 0.05;
+                    if (missionProgress >= 100) {
+                        missionProgress = 100;
+                        spawnBoss();
+                    }
+                }
+                document.getElementById('mission-bar').style.width = missionProgress + '%';
+
                 score += 1;
-                warpFactor = Math.floor(score / 500) + 1;
                 document.getElementById('score-val').innerText = String(score).padStart(6, '0');
                 document.getElementById('warp-val').innerText = `WARP ${warpFactor}`;
 
@@ -419,12 +443,43 @@
                         const rx = (Math.random() - 0.5) * 120;
                         const ry = (Math.random() - 0.5) * 120;
                         const rz = -250;
-                        
                         positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz;
                         positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength;
                     }
                 }
                 starGeo.attributes.position.needsUpdate = true;
+
+                // Boss Logic
+                if (bossActive && boss) {
+                    if (boss.position.z < -15) boss.position.z += 0.3; // Approach player
+                    boss.rotation.y += 0.01;
+
+                    // Collision check with player
+                    if (boss.position.distanceTo(playerGroup.position) < 2.5) {
+                        shields -= 40;
+                        document.getElementById('shield-bar').style.width = shields + '%';
+                        playSound('explosion');
+                        if (shields <= 0) endGame();
+                    }
+
+                    // Laser hits boss
+                    for (let j = lasers.length - 1; j >= 0; j--) {
+                        if (boss.position.distanceTo(lasers[j].position) < 3.0) {
+                            playSound('explosion');
+                            bossHealth -= 5;
+                            document.getElementById('boss-health-bar').style.width = bossHealth + '%';
+                            scene.remove(lasers[j]);
+                            lasers.splice(j, 1);
+
+                            if (bossHealth <= 0) {
+                                scene.remove(boss);
+                                boss = null;
+                                sectorComplete();
+                            }
+                            break;
+                        }
+                    }
+                }
 
                 // Move Lasers
                 for (let i = lasers.length - 1; i >= 0; i--) {
@@ -449,9 +504,7 @@
                         scene.remove(en);
                         enemies.splice(i, 1);
 
-                        if (shields <= 0) {
-                            endGame();
-                        }
+                        if (shields <= 0) endGame();
                         continue;
                     }
 
@@ -485,10 +538,15 @@
             score = 0;
             shields = 100;
             warpFactor = 1;
+            missionProgress = 0;
+            bossActive = false;
+            if (boss) { scene.remove(boss); boss = null; }
             targetX = 0;
             targetY = 0;
             playerGroup.position.set(0, 0, 0);
             document.getElementById('shield-bar').style.width = '100%';
+            document.getElementById('mission-bar').style.width = '0%';
+            document.getElementById('boss-hud').classList.add('hidden');
             document.getElementById('menu-screen').classList.add('hidden');
             document.getElementById('final-score-container').classList.add('hidden');
 
