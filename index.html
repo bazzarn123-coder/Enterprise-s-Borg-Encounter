@@ -61,7 +61,7 @@
     <div id="menu-screen" class="absolute inset-0 z-20 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 pointer-events-auto">
         <div class="hud-glass p-6 sm:p-8 rounded-2xl max-w-md w-full border border-cyan-500/50">
             <h1 class="text-2xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2 tracking-wider">STARFLEET ASSAULT</h1>
-            <p class="text-cyan-200/70 text-xs sm:text-sm mb-6">Command the USS Enterprise through hostile asteroid fields and rogue drone sectors.</p>
+            <p class="text-cyan-200/70 text-xs sm:text-sm mb-6">Command your Starship through hostile asteroid fields and rogue drone sectors.</p>
             
             <div id="final-score-container" class="hidden mb-6">
                 <p class="text-xs text-cyan-300/70">MISSION REPORT - FINAL SCORE</p>
@@ -127,29 +127,66 @@
         const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
         scene.add(ambientLight);
 
-        // --- LOAD EXACT SHIP IMAGE AS 3D SPRITE ---
-        const textureLoader = new THREE.TextureLoader();
         const playerGroup = new THREE.Group();
         scene.add(playerGroup);
 
-        let player = null;
-        textureLoader.load('ship.png', (texture) => {
-            texture.generateMipmaps = true;
-            texture.minFilter = THREE.LinearMipmapLinearFilter;
+        let shipMesh = null;
+        let centerTexture = null;
+        let topTexture = null;
+        let bottomTexture = null;
+
+        // Helper to load image and make black background transparent automatically
+        function loadTransparentTexture(url, callback) {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imgData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    // Make dark/black background pixels fully transparent
+                    if (data[i] < 25 && data[i+1] < 25 && data[i+2] < 25) {
+                        data[i+3] = 0;
+                    }
+                }
+                ctx.putImageData(imgData, 0, 0);
+                const texture = new THREE.CanvasTexture(canvas);
+                texture.generateMipmaps = true;
+                texture.minFilter = THREE.LinearMipmapLinearFilter;
+                callback(texture);
+            };
+            img.onerror = () => { console.warn("Could not load: " + url); };
+            img.src = url;
+        }
+
+        // Load all three textures with transparency
+        loadTransparentTexture('ship.png', (texCenter) => {
+            centerTexture = texCenter;
             
-            // Clean aspect ratio matching your ship image
+            loadTransparentTexture('ship top.png', (texTop) => {
+                topTexture = texTop;
+            }, () => { topTexture = centerTexture; });
+
+            loadTransparentTexture('ship bottom.png', (texBottom) => {
+                bottomTexture = texBottom;
+            }, () => { bottomTexture = centerTexture; });
+
             const shipGeo = new THREE.PlaneGeometry(3.6, 1.6);
             const shipMat = new THREE.MeshBasicMaterial({ 
-                map: texture, 
+                map: centerTexture, 
                 transparent: true,
                 side: THREE.DoubleSide
             });
             
-            player = new THREE.Mesh(shipGeo, shipMat);
-            playerGroup.add(player);
+            shipMesh = new THREE.Mesh(shipGeo, shipMat);
+            playerGroup.add(shipMesh);
         });
 
-        // --- STARFIELD (Realistic Distant Stars) ---
+        // --- STARFIELD ---
         const starCount = 1200;
         const starGeo = new THREE.BufferGeometry();
         const starPositions = new Float32Array(starCount * 3);
@@ -253,10 +290,41 @@
             requestAnimationFrame(animate);
 
             if (gameActive) {
-                // Smooth ship movement interpolation
+                // Smooth position movement
                 playerGroup.position.x += (targetX - playerGroup.position.x) * 0.1;
                 playerGroup.position.y += (targetY - playerGroup.position.y) * 0.1;
+
+                // Banking (Roll) when turning left/right
                 playerGroup.rotation.z = (playerGroup.position.x - targetX) * -0.05;
+
+                // DYNAMIC TEXTURE & PITCH SWAPPING WITH EYE-LEVEL LEEWAY BAND:
+                if (shipMesh && centerTexture) {
+                    const currentY = playerGroup.position.y;
+                    const leewayBand = 0.7; // Dead zone threshold around eye level
+
+                    if (currentY > leewayBand) {
+                        // Above eye level -> use ship bottom.png
+                        if (bottomTexture && shipMesh.material.map !== bottomTexture) {
+                            shipMesh.material.map = bottomTexture;
+                            shipMesh.material.needsUpdate = true;
+                        }
+                        playerGroup.rotation.x = 0.35; // Tilt to show belly
+                    } else if (currentY < -leewayBand) {
+                        // Below eye level -> use ship top.png
+                        if (topTexture && shipMesh.material.map !== topTexture) {
+                            shipMesh.material.map = topTexture;
+                            shipMesh.material.needsUpdate = true;
+                        }
+                        playerGroup.rotation.x = -0.35; // Tilt to show top hull
+                    } else {
+                        // Bang in eye level (with leeway) -> use ship.png
+                        if (centerTexture && shipMesh.material.map !== centerTexture) {
+                            shipMesh.material.map = centerTexture;
+                            shipMesh.material.needsUpdate = true;
+                        }
+                        playerGroup.rotation.x = 0; // Flat neutral rear view
+                    }
+                }
 
                 // Keyboard movement fallback
                 if (keys['ArrowLeft'] || keys['KeyA']) targetX = Math.max(targetX - 0.2, -6);
