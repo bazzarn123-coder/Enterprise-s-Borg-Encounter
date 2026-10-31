@@ -124,36 +124,22 @@
         container.appendChild(renderer.domElement);
 
         // Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
         scene.add(ambientLight);
 
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
-        dirLight.position.set(5, 10, 7);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.4);
+        dirLight.position.set(5, 12, 8);
         scene.add(dirLight);
 
-        // --- TEXTURE LOADER FOR CUSTOM UPLOAD ---
-        const textureLoader = new THREE.TextureLoader();
-        const hullTexture = textureLoader.load('enterprise.png', 
-            (texture) => { console.log("Hull texture loaded successfully!"); }, 
-            undefined, 
-            (err) => { console.warn("Texture load failed, falling back to default material colors.", err); }
-        );
-
-        // --- PROCEDURAL USS ENTE
+        // --- PROCEDURAL USS ENTERPRISE MODEL ---
         function createEnterprise() {
             const group = new THREE.Group();
             
-            // Materials using the uploaded custom texture map
-            const hullMat = new THREE.MeshStandardMaterial({ 
-                map: hullTexture, 
-                color: 0xdddddd, 
-                roughness: 0.3, 
-                metalness: 0.8 
-            });
-            const darkMat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.5, metalness: 0.5 });
-            const nacelleBodyMat = new THREE.MeshStandardMaterial({ map: hullTexture, color: 0xcccccc, roughness: 0.4, metalness: 0.7 });
-            const glowMat = new THREE.MeshBasicMaterial({ color: 0x00d2ff });
-            const bussardMat = new THREE.MeshBasicMaterial({ color: 0xff3300 });
+            const hullMat = new THREE.MeshStandardMaterial({ color: 0xdce3eb, roughness: 0.25, metalness: 0.85 });
+            const darkMat = new THREE.MeshStandardMaterial({ color: 0x333b45, roughness: 0.4, metalness: 0.6 });
+            const nacelleBodyMat = new THREE.MeshStandardMaterial({ color: 0xc8d2df, roughness: 0.3, metalness: 0.8 });
+            const glowMat = new THREE.MeshBasicMaterial({ color: 0x00e1ff });
+            const bussardMat = new THREE.MeshBasicMaterial({ color: 0xff2200 });
             const deflectorMat = new THREE.MeshBasicMaterial({ color: 0xff7700 });
 
             // 1. Saucer Section
