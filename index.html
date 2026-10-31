@@ -138,8 +138,6 @@
         let centerTexture = null;
         let topTexture = null;
         let bottomTexture = null;
-        let currentAssignedTex = null;
-        let fadeTimer = 1.0;
 
         // Helper to load image and make black background transparent automatically
         function loadTransparentTexture(url, callback) {
@@ -168,10 +166,9 @@
             img.src = url;
         }
 
-        // Load all three textures with dual-mesh crossfade setup
+        // Load all three textures with dual-mesh position-mapped setup
         loadTransparentTexture('ship.png', (texCenter) => {
             centerTexture = texCenter;
-            currentAssignedTex = centerTexture;
             
             loadTransparentTexture('ship top.png', (texTop) => {
                 topTexture = texTop;
@@ -312,49 +309,42 @@
                 playerGroup.position.y += (targetY - playerGroup.position.y) * 0.1;
                 playerGroup.rotation.z = (playerGroup.position.x - targetX) * -0.05;
 
-                // DYNAMIC TEXTURE & CROSSFADE SWAPPING WITH LEEWAY BAND:
-                if (shipMesh1 && shipMesh2 && centerTexture) {
-                    const currentY = playerGroup.position.y;
-                    const leewayBand = 0.7; 
-
-                    let targetTexture = centerTexture;
+                // POSITION-MAPPED BLENDING (Zero Lag / Zero Ghosting)
+                if (shipMesh1 && shipMesh2 && centerTexture && topTexture && bottomTexture) {
+                    const y = playerGroup.position.y;
+                    let texA = centerTexture, texB = centerTexture, mix = 0;
                     let targetTilt = 0;
 
-                    if (currentY > leewayBand) {
-                        targetTexture = bottomTexture || centerTexture;
-                        targetTilt = 0.35;
-                    } else if (currentY < -leewayBand) {
-                        targetTexture = topTexture || centerTexture;
+                    if (y <= -0.6) {
+                        // Fully Top View
+                        texA = topTexture; texB = topTexture; mix = 0;
                         targetTilt = -0.35;
-                    } else {
-                        targetTexture = centerTexture;
+                    } else if (y > -0.6 && y < -0.2) {
+                        // Blending Top -> Center
+                        texA = topTexture; texB = centerTexture;
+                        mix = (y - (-0.6)) / (-0.2 - (-0.6));
+                        targetTilt = THREE.MathUtils.lerp(-0.35, 0, mix);
+                    } else if (y >= -0.2 && y <= 0.2) {
+                        // Center Dead Zone
+                        texA = centerTexture; texB = centerTexture; mix = 0;
                         targetTilt = 0;
+                    } else if (y > 0.2 && y < 0.6) {
+                        // Blending Center -> Bottom
+                        texA = centerTexture; texB = bottomTexture;
+                        mix = (y - 0.2) / (0.6 - 0.2);
+                        targetTilt = THREE.MathUtils.lerp(0, 0.35, mix);
+                    } else {
+                        // Fully Bottom View
+                        texA = bottomTexture; texB = bottomTexture; mix = 0;
+                        targetTilt = 0.35;
                     }
 
-                    // Trigger smooth crossfade if texture target changes
-                    if (targetTexture !== currentAssignedTex) {
-                        material2.map = targetTexture;
-                        material2.needsUpdate = true;
-                        material2.opacity = 0.0;
-                        fadeTimer = 0.0; // Restart crossfade timer
-                        currentAssignedTex = targetTexture;
-                    }
-
-                    // Smoothly animate crossfade opacity
-                    if (fadeTimer < 1.0) {
-                        fadeTimer += 0.06; // Adjust speed of crossfade transition here
-                        if (fadeTimer > 1.0) fadeTimer = 1.0;
-
-                        material1.opacity = 1.0 - fadeTimer;
-                        material2.opacity = fadeTimer;
-
-                        if (fadeTimer >= 1.0) {
-                            material1.map = material2.map;
-                            material1.opacity = 1.0;
-                            material2.opacity = 0.0;
-                            material1.needsUpdate = true;
-                        }
-                    }
+                    material1.map = texA;
+                    material2.map = texB;
+                    material1.needsUpdate = true;
+                    material2.needsUpdate = true;
+                    material1.opacity = 1.0 - mix;
+                    material2.opacity = mix;
 
                     playerGroup.rotation.x += (targetTilt - playerGroup.rotation.x) * 0.15;
                 }
