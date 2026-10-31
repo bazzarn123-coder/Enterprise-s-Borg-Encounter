@@ -55,7 +55,7 @@
 
         <!-- Boss Health Bar -->
         <div id="boss-hud" class="w-full max-w-sm mx-auto hidden pointer-events-auto text-center px-4">
-            <p class="text-[10px] sm:text-xs text-red-400 font-bold tracking-widest mb-1 shadow-[0_0_5px_rgba(255,0,0,0.8)]">WARNING: OUT OF WARP - BORG CUBE ENGAGED</p>
+            <p class="text-[10px] sm:text-xs text-red-400 font-bold tracking-widest mb-1 shadow-[0_0_5px_rgba(255,0,0,0.8)]">WARNING: OUT OF WARP - BORG CUBE APPROACHING</p>
             <div class="w-full bg-slate-900 h-2.5 sm:h-3 rounded-full overflow-hidden border border-red-500/60 shadow-[0_0_15px_rgba(255,0,0,0.5)]">
                 <div id="boss-health-bar" class="bg-red-600 h-full w-full transition-all duration-150"></div>
             </div>
@@ -164,9 +164,9 @@
         const colors = [ new THREE.Color(0xffffff), new THREE.Color(0x99ffff), new THREE.Color(0xffffcc) ];
 
         for(let i = 0; i < starCount * 6; i += 6) {
-            const x = (Math.random() - 0.5) * 120;
-            const y = (Math.random() - 0.5) * 120;
-            const z = (Math.random() - 0.5) * 300 - 50;
+            const x = (Math.random() - 0.5) * 150;
+            const y = (Math.random() - 0.5) * 150;
+            const z = (Math.random() - 0.5) * 350 - 50;
             starPositions[i] = x; starPositions[i+1] = y; starPositions[i+2] = z;
             starPositions[i+3] = x; starPositions[i+4] = y; starPositions[i+5] = z - 2;
 
@@ -212,7 +212,7 @@
             laserGeo.rotateX(Math.PI / 2);
             const laserMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 }); 
             const bLaser = new THREE.Mesh(laserGeo, laserMat);
-            bLaser.position.set(boss.position.x + (Math.random() - 0.5) * 4, boss.position.y + (Math.random() - 0.5) * 4, boss.position.z);
+            bLaser.position.set(boss.position.x + (Math.random() - 0.5) * 6, boss.position.y + (Math.random() - 0.5) * 6, boss.position.z);
             scene.add(bLaser);
             borgLasers.push(bLaser);
         }
@@ -247,9 +247,13 @@
             document.getElementById('warp-val').innerText = "DISENGAGED";
             document.getElementById('warp-val').classList.add('text-red-500');
 
+            // Clear normal enemies instantly when dropping out of warp
+            enemies.forEach(e => scene.remove(e));
+            enemies = [];
+
             const bossMat = borgTexture ? new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x228833, wireframe: true });
-            boss = new THREE.Mesh(new THREE.PlaneGeometry(10, 10), bossMat);
-            boss.position.set(0, 1.5, -45); 
+            boss = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), bossMat);
+            boss.position.set(0, 2.0, -90); // Spawns further away and starts moving closer
             scene.add(boss);
         }
 
@@ -303,17 +307,22 @@
                     const positions = starGeo.attributes.position.array;
                     for (let i = 0; i < positions.length; i += 6) {
                         positions[i+2] += speed; positions[i+5] = positions[i+2] - streakLength;
-                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 120, ry = (Math.random() - 0.5) * 120, rz = -250; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
+                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 150, ry = (Math.random() - 0.5) * 150, rz = -350; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
                     }
                 } else {
-                    // FULL DROP OUT OF WARP: Stars are completely static dots in normal space
+                    // FULL DROP OUT OF WARP: Stars are static background points
                     const positions = starGeo.attributes.position.array;
                     for (let i = 0; i < positions.length; i += 6) { 
-                        positions[i+5] = positions[i+2]; // zero out tail length so they aren't streaks
+                        positions[i+5] = positions[i+2]; 
                     }
                     
+                    // Borg Cube moves closer while firing
+                    if (boss && boss.position.z < -30) {
+                        boss.position.z += 0.25; // Moves closer towards the player
+                    }
+
                     borgLaserTimer++;
-                    if (borgLaserTimer % 45 === 0) {
+                    if (borgLaserTimer % 40 === 0) {
                         fireBorgLaser();
                     }
                 }
@@ -327,7 +336,7 @@
 
                 if (bossActive && boss) {
                     for (let j = lasers.length - 1; j >= 0; j--) {
-                        if (boss.position.distanceTo(lasers[j].position) < 7.0) { playSound('explosion'); bossHealth -= (rapidFireActive ? 3 : 2); document.getElementById('boss-health-bar').style.width = bossHealth + '%'; scene.remove(lasers[j]); lasers.splice(j, 1); if (bossHealth <= 0) { scene.remove(boss); boss = null; sectorComplete(); } break; }
+                        if (boss.position.distanceTo(lasers[j].position) < 8.0) { playSound('explosion'); bossHealth -= (rapidFireActive ? 3 : 2); document.getElementById('boss-health-bar').style.width = bossHealth + '%'; scene.remove(lasers[j]); lasers.splice(j, 1); if (bossHealth <= 0) { scene.remove(boss); boss = null; sectorComplete(); } break; }
                     }
                 }
 
