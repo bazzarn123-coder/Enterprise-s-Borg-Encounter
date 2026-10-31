@@ -61,14 +61,9 @@
             </div>
         </div>
 
-        <!-- Powerup HUD -->
-        <div id="powerup-hud" class="w-full max-w-xs mx-auto text-center hidden mb-2">
-            <p class="text-xs text-yellow-400 font-black tracking-widest">RAPID FIRE ACTIVE!</p>
-        </div>
-
         <!-- Bottom Notification -->
         <div class="text-center pb-2 flex flex-col items-center">
-            <p class="text-cyan-400/60 text-[9px] sm:text-xs tracking-widest">FOLLOW ERRATIC ENERGY STREAM TO BUILD SHIELDS | TAP TO FIRE</p>
+            <p class="text-cyan-400/60 text-[9px] sm:text-xs tracking-widest">FOLLOW SHIELD STREAM TO RECHARGE SHIELDS | TAP TO FIRE</p>
         </div>
     </div>
 
@@ -76,7 +71,7 @@
     <div id="menu-screen" class="absolute inset-0 z-25 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 pointer-events-auto">
         <div class="hud-glass p-6 sm:p-8 rounded-2xl max-w-md w-full border border-cyan-500/50">
             <h1 id="menu-title" class="text-2xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2 tracking-wider">STARFLEET ASSAULT</h1>
-            <p id="menu-desc" class="text-cyan-200/70 text-xs sm:text-sm mb-6">Sector 1 objective: Navigate warp, follow shield energy streams, and defeat the Borg threat.</p>
+            <p id="menu-desc" class="text-cyan-200/70 text-xs sm:text-sm mb-6">Sector 1 objective: Navigate warp, follow shield streams, and defeat the Borg threat.</p>
             
             <div id="final-score-container" class="hidden mb-6">
                 <p class="text-xs text-cyan-300/70">MISSION REPORT - FINAL SCORE</p>
@@ -157,16 +152,16 @@
         loadTransparentTexture('borg_cube.png', (tex) => { borgTexture = tex; });
 
         // --- MULTICOLOR WARP STAR STREAKS SYSTEM ---
-        const starCount = 800;
+        const starCount = 1200;
         const starGeo = new THREE.BufferGeometry();
         const starPositions = new Float32Array(starCount * 6);
         const starColors = new Float32Array(starCount * 6);
         const colors = [ new THREE.Color(0xffffff), new THREE.Color(0x99ffff), new THREE.Color(0xffffcc) ];
 
         for(let i = 0; i < starCount * 6; i += 6) {
-            const x = (Math.random() - 0.5) * 150;
-            const y = (Math.random() - 0.5) * 150;
-            const z = (Math.random() - 0.5) * 350 - 50;
+            const x = (Math.random() - 0.5) * 200;
+            const y = (Math.random() - 0.5) * 200;
+            const z = (Math.random() - 0.5) * 400 - 50;
             starPositions[i] = x; starPositions[i+1] = y; starPositions[i+2] = z;
             starPositions[i+3] = x; starPositions[i+4] = y; starPositions[i+5] = z - 2;
 
@@ -177,27 +172,27 @@
 
         starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
         starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
-        const starMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.8 });
+        const starMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9 });
         const starField = new THREE.LineSegments(starGeo, starMat);
         scene.add(starField);
 
-        // --- SHIELD RECHARGE STREAM SYSTEM ---
-        const streamNodeCount = 40;
+        // --- SMOOTH CONTINUOUS SHIELD RECHARGE STREAM ---
+        const streamNodeCount = 60;
         const streamGeo = new THREE.BufferGeometry();
         const streamPositions = new Float32Array(streamNodeCount * 3);
         for(let i = 0; i < streamNodeCount; i++) {
-            streamPositions[i*3] = Math.sin(i * 0.3) * 4;
-            streamPositions[i*3+1] = Math.cos(i * 0.2) * 2;
-            streamPositions[i*3+2] = -i * 5;
+            streamPositions[i*3] = Math.sin(i * 0.2) * 4;
+            streamPositions[i*3+1] = Math.cos(i * 0.15) * 2;
+            streamPositions[i*3+2] = -i * 4;
         }
         streamGeo.setAttribute('position', new THREE.BufferAttribute(streamPositions, 3));
-        const streamMat = new THREE.PointsMaterial({ color: 0x00ffff, size: 0.6, transparent: true, opacity: 0.9 });
-        const shieldStream = new THREE.Points(streamGeo, streamMat);
+        const streamMat = new THREE.LineBasicMaterial({ color: 0x00ffff, linewidth: 3, transparent: true, opacity: 0.85 });
+        const shieldStream = new THREE.Line(streamGeo, streamMat);
         scene.add(shieldStream);
 
         // --- GAME STATE ---
         let gameActive = false, score = 0, shields = 100, warpFactor = 1, missionProgress = 0, sectorCount = 1;
-        let bossActive = false, boss = null, bossHealth = 300, maxBossHealth = 300, borgLaserTimer = 0; // Much higher Borg health
+        let bossActive = false, boss = null, bossHealth = 300, maxBossHealth = 300, borgLaserTimer = 0;
         let rapidFireActive = false, rapidFireTimer = 0;
         let lasers = [], borgLasers = [], enemies = [];
         let targetX = 0, targetY = 0, keys = {}, lastShotTime = 0;
@@ -259,7 +254,7 @@
 
             enemies.forEach(e => scene.remove(e));
             enemies = [];
-            shieldStream.visible = false; // Hide shield stream during boss fight
+            shieldStream.visible = false; 
 
             const bossMat = borgTexture ? new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x228833, wireframe: true });
             boss = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), bossMat);
@@ -269,7 +264,7 @@
 
         function sectorComplete() {
             bossActive = false; missionProgress = 0; sectorCount += 1;
-            maxBossHealth += 100; // Increase difficulty each sector
+            maxBossHealth += 100; 
             document.getElementById('boss-hud').classList.add('hidden');
             document.getElementById('boss-health-bar').style.width = '100%';
             document.getElementById('objective-title').innerText = "SECTOR " + sectorCount + " PROGRESS";
@@ -310,47 +305,49 @@
                 if (keys['ArrowDown'] || keys['KeyS']) targetY = Math.max(targetY - 0.2, -4);
 
                 let speed = 0;
+                const positions = starGeo.attributes.position.array;
+
                 if (!bossActive) {
                     missionProgress += (0.05 + (sectorCount * 0.01));
                     warpFactor = 1 + (sectorCount - 1) * 3;
                     if (missionProgress >= 100) spawnBoss();
                     
                     const streakLength = 1.5 + (warpFactor * 0.8); speed = 0.6 + (warpFactor * 0.4);
-                    const positions = starGeo.attributes.position.array;
                     for (let i = 0; i < positions.length; i += 6) {
                         positions[i+2] += speed; positions[i+5] = positions[i+2] - streakLength;
-                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 150, ry = (Math.random() - 0.5) * 150, rz = -350; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
+                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 200, ry = (Math.random() - 0.5) * 200, rz = -400; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
                     }
 
-                    // Animate and Move Erratic Shield Stream
-                    streamWaveOffset += 0.03;
+                    // Animate and Move Smooth Shield Stream
+                    streamWaveOffset += 0.025;
                     const streamPos = shieldStream.geometry.attributes.position.array;
                     let closeToStream = false;
                     for(let i = 0; i < streamNodeCount; i++) {
                         streamPos[i*3+2] += speed;
                         if (streamPos[i*3+2] > 10) {
-                            streamPos[i*3+2] = -200;
-                            streamPos[i*3] = (Math.sin(streamWaveOffset * 2 + i) * 4.5);
-                            streamPos[i*3+1] = (Math.cos(streamWaveOffset * 1.5 + i) * 2.5);
+                            streamPos[i*3+2] = -240;
                         }
-                        // Check if ship is following the stream nodes
+                        // Smooth sine/cosine weaving curve
+                        streamPos[i*3] = Math.sin(streamWaveOffset + (i * 0.15)) * 4.5;
+                        streamPos[i*3+1] = Math.cos(streamWaveOffset * 0.8 + (i * 0.1)) * 2.5;
+
+                        // Check proximity to stream
                         const nodeVector = new THREE.Vector3(streamPos[i*3], streamPos[i*3+1], streamPos[i*3+2]);
-                        if (nodeVector.distanceTo(playerGroup.position) < 2.2) {
+                        if (nodeVector.distanceTo(playerGroup.position) < 2.5) {
                             closeToStream = true;
                         }
                     }
                     shieldStream.geometry.attributes.position.needsUpdate = true;
 
-                    // Build shields when following stream
                     if (closeToStream) {
-                        shields = Math.min(shields + 0.3, 100);
+                        shields = Math.min(shields + 0.4, 100);
                         document.getElementById('shield-bar').style.width = shields + '%';
-                        if (Math.random() < 0.1) playSound('shield-charge');
+                        if (Math.random() < 0.15) playSound('shield-charge');
                     }
                 } else {
-                    const positions = starGeo.attributes.position.array;
+                    // OUT OF WARP: Rich static background stars surrounding the ship
                     for (let i = 0; i < positions.length; i += 6) { 
-                        positions[i+5] = positions[i+2]; 
+                        positions[i+5] = positions[i+2]; // zero tail length so they look like static star dots
                     }
                     
                     if (boss && boss.position.z < -30) {
