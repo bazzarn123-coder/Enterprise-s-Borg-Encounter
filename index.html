@@ -130,10 +130,16 @@
         const playerGroup = new THREE.Group();
         scene.add(playerGroup);
 
-        let shipMesh = null;
+        let shipMesh1 = null;
+        let shipMesh2 = null;
+        let material1 = null;
+        let material2 = null;
+
         let centerTexture = null;
         let topTexture = null;
         let bottomTexture = null;
+        let currentAssignedTex = null;
+        let fadeTimer = 1.0;
 
         // Helper to load image and make black background transparent automatically
         function loadTransparentTexture(url, callback) {
@@ -148,7 +154,6 @@
                 const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const data = imgData.data;
                 for (let i = 0; i < data.length; i += 4) {
-                    // Make dark/black background pixels fully transparent
                     if (data[i] < 25 && data[i+1] < 25 && data[i+2] < 25) {
                         data[i+3] = 0;
                     }
@@ -163,9 +168,10 @@
             img.src = url;
         }
 
-        // Load all three textures with transparency
+        // Load all three textures with dual-mesh crossfade setup
         loadTransparentTexture('ship.png', (texCenter) => {
             centerTexture = texCenter;
+            currentAssignedTex = centerTexture;
             
             loadTransparentTexture('ship top.png', (texTop) => {
                 topTexture = texTop;
@@ -176,14 +182,27 @@
             }, () => { bottomTexture = centerTexture; });
 
             const shipGeo = new THREE.PlaneGeometry(3.6, 1.6);
-            const shipMat = new THREE.MeshBasicMaterial({ 
+            
+            material1 = new THREE.MeshBasicMaterial({ 
                 map: centerTexture, 
                 transparent: true,
+                opacity: 1.0,
+                side: THREE.DoubleSide
+            });
+
+            material2 = new THREE.MeshBasicMaterial({ 
+                map: centerTexture, 
+                transparent: true,
+                opacity: 0.0,
                 side: THREE.DoubleSide
             });
             
-            shipMesh = new THREE.Mesh(shipGeo, shipMat);
-            playerGroup.add(shipMesh);
+            shipMesh1 = new THREE.Mesh(shipGeo, material1);
+            shipMesh2 = new THREE.Mesh(shipGeo, material2);
+            shipMesh2.position.z = 0.001; // Tiny offset to prevent z-fighting
+
+            playerGroup.add(shipMesh1);
+            playerGroup.add(shipMesh2);
         });
 
         // --- STARFIELD ---
@@ -220,7 +239,7 @@
             targetY = mouseY * 4;
         });
 
-        // Touch Controls (Optimized for Mobile)
+        // Touch Controls
         window.addEventListener('touchmove', (e) => {
             if (!gameActive || e.touches.length === 0) return;
             const touch = e.touches[0];
@@ -261,7 +280,6 @@
             });
         }
 
-        // Spawn Enemies / Asteroids
         function spawnEnemy() {
             if (!gameActive) return;
             const isDrone = Math.random() > 0.4;
@@ -290,40 +308,55 @@
             requestAnimationFrame(animate);
 
             if (gameActive) {
-                // Smooth position movement
                 playerGroup.position.x += (targetX - playerGroup.position.x) * 0.1;
                 playerGroup.position.y += (targetY - playerGroup.position.y) * 0.1;
-
-                // Banking (Roll) when turning left/right
                 playerGroup.rotation.z = (playerGroup.position.x - targetX) * -0.05;
 
-                // DYNAMIC TEXTURE & PITCH SWAPPING WITH EYE-LEVEL LEEWAY BAND:
-                if (shipMesh && centerTexture) {
+                // DYNAMIC TEXTURE & CROSSFADE SWAPPING WITH LEEWAY BAND:
+                if (shipMesh1 && shipMesh2 && centerTexture) {
                     const currentY = playerGroup.position.y;
-                    const leewayBand = 0.7; // Dead zone threshold around eye level
+                    const leewayBand = 0.7; 
+
+                    let targetTexture = centerTexture;
+                    let targetTilt = 0;
 
                     if (currentY > leewayBand) {
-                        // Above eye level -> use ship bottom.png
-                        if (bottomTexture && shipMesh.material.map !== bottomTexture) {
-                            shipMesh.material.map = bottomTexture;
-                            shipMesh.material.needsUpdate = true;
-                        }
-                        playerGroup.rotation.x = 0.35; // Tilt to show belly
+                        targetTexture = bottomTexture || centerTexture;
+                        targetTilt = 0.35;
                     } else if (currentY < -leewayBand) {
-                        // Below eye level -> use ship top.png
-                        if (topTexture && shipMesh.material.map !== topTexture) {
-                            shipMesh.material.map = topTexture;
-                            shipMesh.material.needsUpdate = true;
-                        }
-                        playerGroup.rotation.x = -0.35; // Tilt to show top hull
+                        targetTexture = topTexture || centerTexture;
+                        targetTilt = -0.35;
                     } else {
-                        // Bang in eye level (with leeway) -> use ship.png
-                        if (centerTexture && shipMesh.material.map !== centerTexture) {
-                            shipMesh.material.map = centerTexture;
-                            shipMesh.material.needsUpdate = true;
-                        }
-                        playerGroup.rotation.x = 0; // Flat neutral rear view
+                        targetTexture = centerTexture;
+                        targetTilt = 0;
                     }
+
+                    // Trigger smooth crossfade if texture target changes
+                    if (targetTexture !== currentAssignedTex) {
+                        material2.map = targetTexture;
+                        material2.needsUpdate = true;
+                        material2.opacity = 0.0;
+                        fadeTimer = 0.0; // Restart crossfade timer
+                        currentAssignedTex = targetTexture;
+                    }
+
+                    // Smoothly animate crossfade opacity
+                    if (fadeTimer < 1.0) {
+                        fadeTimer += 0.06; // Adjust speed of crossfade transition here
+                        if (fadeTimer > 1.0) fadeTimer = 1.0;
+
+                        material1.opacity = 1.0 - fadeTimer;
+                        material2.opacity = fadeTimer;
+
+                        if (fadeTimer >= 1.0) {
+                            material1.map = material2.map;
+                            material1.opacity = 1.0;
+                            material2.opacity = 0.0;
+                            material1.needsUpdate = true;
+                        }
+                    }
+
+                    playerGroup.rotation.x += (targetTilt - playerGroup.rotation.x) * 0.15;
                 }
 
                 // Keyboard movement fallback
@@ -362,7 +395,6 @@
                     en.rotation.x += en.userData.rotSpeed.x;
                     en.rotation.y += en.userData.rotSpeed.y;
 
-                    // Player Collision
                     if (en.position.distanceTo(playerGroup.position) < 1.5) {
                         playSound('explosion');
                         shields -= 25;
@@ -376,7 +408,6 @@
                         continue;
                     }
 
-                    // Laser Collision
                     let destroyed = false;
                     for (let j = lasers.length - 1; j >= 0; j--) {
                         if (en.position.distanceTo(lasers[j].position) < 1.2) {
@@ -392,7 +423,6 @@
                     }
                     if (destroyed) continue;
 
-                    // Out of bounds
                     if (en.position.z > 10) {
                         scene.remove(en);
                         enemies.splice(i, 1);
@@ -437,7 +467,6 @@
             startGame();
         });
 
-        // Window Resizing
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
