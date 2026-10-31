@@ -216,18 +216,30 @@
             });
         });
 
-        // --- STARFIELD ---
-        const starCount = 1200;
+        // --- DYNAMIC WARP STAR STREAKS SYSTEM ---
+        const starCount = 800;
         const starGeo = new THREE.BufferGeometry();
-        const starPositions = new Float32Array(starCount * 3);
-        for(let i = 0; i < starCount * 3; i += 3) {
-            starPositions[i] = (Math.random() - 0.5) * 100;
-            starPositions[i+1] = (Math.random() - 0.5) * 100;
-            starPositions[i+2] = (Math.random() - 0.5) * 250 - 50;
+        const starPositions = new Float32Array(starCount * 6); // 2 points per line (start and end)
+        
+        for(let i = 0; i < starCount * 6; i += 6) {
+            const x = (Math.random() - 0.5) * 120;
+            const y = (Math.random() - 0.5) * 120;
+            const z = (Math.random() - 0.5) * 300 - 50;
+
+            // Start point
+            starPositions[i] = x;
+            starPositions[i+1] = y;
+            starPositions[i+2] = z;
+
+            // End point (initially slightly behind)
+            starPositions[i+3] = x;
+            starPositions[i+4] = y;
+            starPositions[i+5] = z - 2;
         }
+
         starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-        const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.15, transparent: true, opacity: 0.9, sizeAttenuation: true });
-        const starField = new THREE.Points(starGeo, starMat);
+        const starMat = new THREE.LineBasicMaterial({ color: 0xccffff, transparent: true, opacity: 0.8 });
+        const starField = new THREE.LineSegments(starGeo, starMat);
         scene.add(starField);
 
         // --- GAME STATE ---
@@ -341,35 +353,28 @@
                     let targetTilt = 0;
 
                     if (y <= -2.2) {
-                        // 1. Fully Top View
                         texA = topTexture; texB = topTexture; mix = 0;
                         targetTilt = -0.4;
                     } else if (y > -2.2 && y <= -1.2) {
-                        // 2. Transition: Top -> Mid-Top (Stretched)
                         texA = topTexture; texB = midTopTexture;
                         mix = (y - (-2.2)) / (-1.2 - (-2.2));
                         targetTilt = THREE.MathUtils.lerp(-0.4, -0.2, mix);
                     } else if (y > -1.2 && y <= -0.4) {
-                        // 3. Transition: Mid-Top -> Center (Stretched)
                         texA = midTopTexture; texB = centerTexture;
                         mix = (y - (-1.2)) / (-0.4 - (-1.2));
                         targetTilt = THREE.MathUtils.lerp(-0.2, 0, mix);
                     } else if (y > -0.4 && y <= 0.4) {
-                        // 4. Center Dead Zone (Wider comfy zone in the middle)
                         texA = centerTexture; texB = centerTexture; mix = 0;
                         targetTilt = 0;
                     } else if (y > 0.4 && y <= 1.2) {
-                        // 5. Transition: Center -> Mid-Bottom (Stretched)
                         texA = centerTexture; texB = midBottomTexture;
                         mix = (y - 0.4) / (1.2 - 0.4);
                         targetTilt = THREE.MathUtils.lerp(0, 0.15, mix);
                     } else if (y > 1.2 && y <= 2.2) {
-                        // 6. Transition: Mid-Bottom -> Bottom (Stretched)
                         texA = midBottomTexture; texB = bottomTexture;
                         mix = (y - 1.2) / (2.2 - 1.2);
                         targetTilt = THREE.MathUtils.lerp(0.15, 0.35, mix);
                     } else {
-                        // 7. Fully Bottom View
                         texA = bottomTexture; texB = bottomTexture; mix = 0;
                         targetTilt = 0.35;
                     }
@@ -396,11 +401,23 @@
                 document.getElementById('score-val').innerText = String(score).padStart(6, '0');
                 document.getElementById('warp-val').innerText = `WARP ${warpFactor}`;
 
-                // Move Starfield
+                // Animate Warp Star Streaks (Length scales dynamically with Warp Factor)
                 const positions = starGeo.attributes.position.array;
-                for (let i = 2; i < positions.length; i += 3) {
-                    positions[i] += 0.8 * warpFactor;
-                    if (positions[i] > 10) positions[i] = -250;
+                const streakLength = 1.5 + (warpFactor * 0.8);
+                const speed = 0.6 + (warpFactor * 0.4);
+
+                for (let i = 0; i < positions.length; i += 6) {
+                    positions[i+2] += speed; // Move Z forward
+                    positions[i+5] = positions[i+2] - streakLength; // Stretch tail backward
+
+                    if (positions[i+2] > 15) {
+                        const rx = (Math.random() - 0.5) * 120;
+                        const ry = (Math.random() - 0.5) * 120;
+                        const rz = -250;
+                        
+                        positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz;
+                        positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength;
+                    }
                 }
                 starGeo.attributes.position.needsUpdate = true;
 
