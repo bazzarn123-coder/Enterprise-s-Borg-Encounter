@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Starfleet Warp Arcade 3D</title>
+    <title>Starfleet Warp Assault: Resistance is Futile</title>
     <!-- Tailwind CSS for Modern HUD -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <!-- Three.js Library -->
@@ -11,16 +11,8 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        body { 
-            font-family: 'Orbitron', sans-serif; 
-            overflow: hidden; 
-            background: #000; 
-            margin: 0; 
-            user-select: none; 
-            touch-action: none; 
-            -webkit-touch-callout: none;
-        }
-        .hud-glass { background: rgba(10, 20, 40, 0.75); backdrop-filter: blur(10px); border: 1px solid rgba(0, 170, 255, 0.3); box-shadow: 0 0 20px rgba(0, 170, 255, 0.2); }
+        body { font-family: 'Orbitron', sans-serif; overflow: hidden; background: #000; margin: 0; user-select: none; touch-action: none; -webkit-touch-callout: none; }
+        .hud-glass { background: rgba(10, 20, 40, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(0, 170, 255, 0.4); box-shadow: 0 0 20px rgba(0, 170, 255, 0.25); }
     </style>
 </head>
 <body class="relative w-screen h-screen">
@@ -29,47 +21,54 @@
     <div id="canvas-container" class="absolute inset-0 z-0"></div>
 
     <!-- HUD Overlay -->
-    <div class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-4 sm:p-6">
+    <div class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-3 sm:p-6">
         <!-- Top Bar -->
-        <div class="flex justify-between items-center w-full max-w-6xl mx-auto">
-            <div class="hud-glass px-4 py-2 sm:px-6 sm:py-3 rounded-xl flex items-center space-x-4 sm:space-x-6 text-cyan-400">
+        <div class="flex justify-between items-center w-full max-w-6xl mx-auto gap-2">
+            <!-- Shields & Score -->
+            <div class="hud-glass px-3 py-2 sm:px-5 sm:py-3 rounded-xl flex items-center space-x-3 sm:space-x-5 text-cyan-400">
                 <div>
-                    <p class="text-[10px] sm:text-xs text-cyan-300/75 tracking-widest">SHIELDS</p>
-                    <div class="w-24 sm:w-32 bg-slate-800 h-2.5 sm:h-3 rounded-full overflow-hidden mt-1 border border-cyan-500/40">
+                    <p class="text-[9px] sm:text-xs text-cyan-300/75 tracking-widest">SHIELDS</p>
+                    <div class="w-20 sm:w-28 bg-slate-800 h-2 sm:h-2.5 rounded-full overflow-hidden mt-1 border border-cyan-500/40">
                         <div id="shield-bar" class="bg-cyan-400 h-full w-full transition-all duration-300 shadow-[0_0_10px_#00aaff]"></div>
                     </div>
                 </div>
                 <div>
-                    <p class="text-[10px] sm:text-xs text-cyan-300/75 tracking-widest">SCORE</p>
-                    <p id="score-val" class="text-xl sm:text-2xl font-black text-white">000000</p>
+                    <p class="text-[9px] sm:text-xs text-cyan-300/75 tracking-widest">SCORE</p>
+                    <p id="score-val" class="text-base sm:text-xl font-black text-white">000000</p>
                 </div>
             </div>
 
             <!-- Mission Progress / Sector Objective -->
-            <div class="hud-glass px-4 py-2 sm:px-6 sm:py-3 rounded-xl text-center text-cyan-400 hidden sm:block">
-                <p id="objective-title" class="text-[10px] sm:text-xs text-cyan-300/75 tracking-widest">SECTOR PROGRESS</p>
-                <div class="w-32 bg-slate-800 h-2 rounded-full overflow-hidden mt-1 border border-cyan-500/40">
+            <div class="hud-glass px-3 py-2 sm:px-5 sm:py-3 rounded-xl text-center text-cyan-400 flex-1 max-w-[200px] sm:max-w-xs mx-2">
+                <p id="objective-title" class="text-[9px] sm:text-xs text-cyan-300/75 tracking-widest truncate">MISSION PROGRESS</p>
+                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-1 border border-cyan-500/40">
                     <div id="mission-bar" class="bg-yellow-400 h-full w-0 transition-all duration-300 shadow-[0_0_10px_#ffaa00]"></div>
                 </div>
             </div>
 
-            <div class="hud-glass px-4 py-2 sm:px-6 sm:py-3 rounded-xl text-center text-cyan-400">
-                <p class="text-[10px] sm:text-xs text-cyan-300/75 tracking-widest">WARP</p>
-                <p id="warp-val" class="text-xl sm:text-2xl font-black text-yellow-400">WARP 1</p>
+            <!-- Warp Status -->
+            <div class="hud-glass px-3 py-2 sm:px-5 sm:py-3 rounded-xl text-center text-cyan-400">
+                <p id="warp-title" class="text-[9px] sm:text-xs text-cyan-300/75 tracking-widest">WARP</p>
+                <p id="warp-val" class="text-base sm:text-xl font-black text-yellow-400">ENGAGED</p>
             </div>
         </div>
 
-        <!-- Boss Health Bar (Hidden until boss spawns) -->
-        <div id="boss-hud" class="w-full max-w-md mx-auto hidden pointer-events-auto text-center">
-            <p class="text-xs text-red-400 font-bold tracking-widest mb-1">WARNING: KLINGON BIRD-OF-PREY DETECTED</p>
-            <div class="w-full bg-slate-900 h-3 rounded-full overflow-hidden border border-red-500/60 shadow-[0_0_15px_rgba(255,0,0,0.5)]">
+        <!-- Boss Health Bar -->
+        <div id="boss-hud" class="w-full max-w-sm mx-auto hidden pointer-events-auto text-center px-4">
+            <p class="text-[10px] sm:text-xs text-red-400 font-bold tracking-widest mb-1 shadow-[0_0_5px_rgba(255,0,0,0.8)]">WARNING: BORG CUBE INTERCEPTED</p>
+            <div class="w-full bg-slate-900 h-2.5 sm:h-3 rounded-full overflow-hidden border border-red-500/60 shadow-[0_0_15px_rgba(255,0,0,0.5)]">
                 <div id="boss-health-bar" class="bg-red-600 h-full w-full transition-all duration-150"></div>
             </div>
         </div>
 
+        <!-- Powerup HUD (Visible when Rapid Fire is active) -->
+        <div id="powerup-hud" class="w-full max-w-xs mx-auto text-center hidden mb-2">
+            <p class="text-xs text-yellow-400 font-black tracking-widest">RAPID FIRE ACTIVE!</p>
+        </div>
+
         <!-- Bottom Notification -->
         <div class="text-center pb-2 flex flex-col items-center">
-            <p class="text-cyan-400/60 text-[10px] sm:text-xs tracking-widest">DRAG ANYWHERE TO STEER | TAP TO FIRE</p>
+            <p class="text-cyan-400/60 text-[9px] sm:text-xs tracking-widest">DRAG ANYWHERE TO STEER | TAP TO FIRE</p>
         </div>
     </div>
 
@@ -77,7 +76,7 @@
     <div id="menu-screen" class="absolute inset-0 z-25 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 pointer-events-auto">
         <div class="hud-glass p-6 sm:p-8 rounded-2xl max-w-md w-full border border-cyan-500/50">
             <h1 id="menu-title" class="text-2xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2 tracking-wider">STARFLEET ASSAULT</h1>
-            <p id="menu-desc" class="text-cyan-200/70 text-xs sm:text-sm mb-6">Reach 100% sector progress to trigger and defeat the enemy flagship!</p>
+            <p id="menu-desc" class="text-cyan-200/70 text-xs sm:text-sm mb-6">Sector 1 objective: Navigate to the subspace rendezvous point and defeat any threats.</p>
             
             <div id="final-score-container" class="hidden mb-6">
                 <p class="text-xs text-cyan-300/70">MISSION REPORT - FINAL SCORE</p>
@@ -92,46 +91,17 @@
 
     <!-- Game Logic Script -->
     <script>
-        // --- AUDIO SYSTEM (Web Audio API) ---
+        // --- AUDIO SYSTEM ---
         let audioCtx = null;
-        function initAudio() {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-
+        function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
         function playSound(type) {
             if (!audioCtx) return;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            const now = audioCtx.currentTime;
-
-            if (type === 'laser') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(800, now);
-                osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
-                gain.gain.setValueAtTime(0.15, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
-                osc.start(now);
-                osc.stop(now + 0.15);
-            } else if (type === 'explosion') {
-                osc.type = 'square';
-                osc.frequency.setValueAtTime(120, now);
-                osc.frequency.linearRampToValueAtTime(30, now + 0.4);
-                gain.gain.setValueAtTime(0.25, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
-                osc.start(now);
-                osc.stop(now + 0.4);
-            } else if (type === 'victory') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(440, now);
-                osc.frequency.setValueAtTime(554.37, now + 0.2);
-                osc.frequency.setValueAtTime(659.25, now + 0.4);
-                gain.gain.setValueAtTime(0.3, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 0.8);
-                osc.start(now);
-                osc.stop(now + 0.8);
-            }
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination); const now = audioCtx.currentTime;
+            if (type === 'laser') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.15); gain.gain.setValueAtTime(0.15, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.15); osc.start(now); osc.stop(now + 0.15); }
+            else if (type === 'explosion') { osc.type = 'square'; osc.frequency.setValueAtTime(120, now); osc.frequency.linearRampToValueAtTime(30, now + 0.4); gain.gain.setValueAtTime(0.25, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.4); osc.start(now); osc.stop(now + 0.4); }
+            else if (type === 'powerup') { osc.type = 'sine'; osc.frequency.setValueAtTime(440, now); osc.frequency.exponentialRampToValueAtTime(880, now + 0.1); osc.frequency.exponentialRampToValueAtTime(1320, now + 0.2); gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
+            else if (type === 'victory') { osc.type = 'triangle'; osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(554.37, now + 0.2); osc.frequency.setValueAtTime(659.25, now + 0.4); gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.8); osc.start(now); osc.stop(now + 0.8); }
         }
 
         // --- THREE.JS GAME SETUP ---
@@ -144,440 +114,219 @@
         camera.lookAt(0, 0, -5);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setSize(window.innerWidth, window.innerHeight); renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        // Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
-        scene.add(ambientLight);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.0); scene.add(ambientLight);
+        const playerGroup = new THREE.Group(); scene.add(playerGroup);
 
-        const playerGroup = new THREE.Group();
-        scene.add(playerGroup);
-
-        let shipMesh1 = null;
-        let shipMesh2 = null;
-        let material1 = null;
-        let material2 = null;
-
-        let centerTexture = null;
-        let topTexture = null;
-        let midTopTexture = null;
-        let midBottomTexture = null;
-        let bottomTexture = null;
-
-        // Helper to load image and make black background transparent automatically
-        function loadTransparentTexture(url, fallbackTex, callback) {
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
+        let material1 = null, material2 = null, centerTexture = null, topTexture = null, midTopTexture = null, midBottomTexture = null, bottomTexture = null;
+        function loadTransparentTexture(url, callback) {
+            const img = new Image(); img.crossOrigin = 'anonymous';
             img.onload = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = img.width;
-                canvas.height = img.height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0);
-                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                const data = imgData.data;
-                for (let i = 0; i < data.length; i += 4) {
-                    if (data[i] < 25 && data[i+1] < 25 && data[i+2] < 25) {
-                        data[i+3] = 0;
-                    }
-                }
-                ctx.putImageData(imgData, 0, 0);
-                const texture = new THREE.CanvasTexture(canvas);
-                texture.generateMipmaps = true;
-                texture.minFilter = THREE.LinearMipmapLinearFilter;
-                callback(texture);
+                const canvas = document.createElement('canvas'); canvas.width = img.width; canvas.height = img.height;
+                const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0);
+                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height); const data = imgData.data;
+                for (let i = 0; i < data.length; i += 4) { if (data[i] < 25 && data[i+1] < 25 && data[i+2] < 25) { data[i+3] = 0; } }
+                ctx.putImageData(imgData, 0, 0); const texture = new THREE.CanvasTexture(canvas);
+                texture.generateMipmaps = true; texture.minFilter = THREE.LinearMipmapLinearFilter; callback(texture);
             };
-            img.onerror = () => { 
-                console.warn("Could not load: " + url + ", using fallback."); 
-                callback(fallbackTex); 
-            };
-            img.src = url;
+            img.onerror = () => { console.warn("Could not load: " + url); callback(null); }; img.src = url;
         }
 
-        // Load all 5 textures sequentially
-        loadTransparentTexture('ship.png', null, (texCenter) => {
-            centerTexture = texCenter;
-            
-            loadTransparentTexture('ship top.png', centerTexture, (texTop) => {
-                topTexture = texTop;
-                
-                loadTransparentTexture('ship mid-top.png', centerTexture, (texMidTop) => {
-                    midTopTexture = texMidTop;
-                    
-                    loadTransparentTexture('ship mid-bottom.png', centerTexture, (texMidBottom) => {
-                        midBottomTexture = texMidBottom;
-                        
-                        loadTransparentTexture('ship bottom.png', centerTexture, (texBottom) => {
-                            bottomTexture = texBottom;
-
+        loadTransparentTexture('ship.png', (tex) => { centerTexture = tex; 
+            loadTransparentTexture('ship top.png', (tex) => { topTexture = tex;
+                loadTransparentTexture('ship mid-top.png', (tex) => { midTopTexture = tex;
+                    loadTransparentTexture('ship mid-bottom.png', (tex) => { midBottomTexture = tex;
+                        loadTransparentTexture('ship bottom.png', (tex) => { bottomTexture = tex;
                             const shipGeo = new THREE.PlaneGeometry(3.6, 1.6);
                             material1 = new THREE.MeshBasicMaterial({ map: centerTexture, transparent: true, opacity: 1.0, side: THREE.DoubleSide });
                             material2 = new THREE.MeshBasicMaterial({ map: centerTexture, transparent: true, opacity: 0.0, side: THREE.DoubleSide });
-                            
-                            shipMesh1 = new THREE.Mesh(shipGeo, material1);
-                            shipMesh2 = new THREE.Mesh(shipGeo, material2);
-                            shipMesh2.position.z = 0.001;
-
-                            playerGroup.add(shipMesh1);
-                            playerGroup.add(shipMesh2);
+                            playerGroup.add(new THREE.Mesh(shipGeo, material1));
+                            const m2 = new THREE.Mesh(shipGeo, material2); m2.position.z = 0.001; playerGroup.add(m2);
                         });
                     });
                 });
             });
         });
 
-        // --- DYNAMIC WARP STAR STREAKS SYSTEM ---
+        // Load Borg Cube Texture
+        let borgTexture = null;
+        loadTransparentTexture('borg_cube.png', (tex) => { borgTexture = tex; });
+
+        // --- MULTICOLOR WARP STAR STREAKS SYSTEM ---
         const starCount = 800;
         const starGeo = new THREE.BufferGeometry();
         const starPositions = new Float32Array(starCount * 6);
+        const starColors = new Float32Array(starCount * 6);
         
+        const colors = [ new THREE.Color(0xffffff), new THREE.Color(0x99ffff), new THREE.Color(0xffffcc) ]; // White, Cyan, Yellow
+
         for(let i = 0; i < starCount * 6; i += 6) {
             const x = (Math.random() - 0.5) * 120;
             const y = (Math.random() - 0.5) * 120;
             const z = (Math.random() - 0.5) * 300 - 50;
-
             starPositions[i] = x; starPositions[i+1] = y; starPositions[i+2] = z;
             starPositions[i+3] = x; starPositions[i+4] = y; starPositions[i+5] = z - 2;
+
+            const baseColor = colors[Math.floor(Math.random() * colors.length)];
+            const r = baseColor.r, g = baseColor.g, b = baseColor.b;
+            starColors[i] = r; starColors[i+1] = g; starColors[i+2] = b;
+            starColors[i+3] = r; starColors[i+4] = g; starColors[i+5] = b;
         }
 
         starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-        const starMat = new THREE.LineBasicMaterial({ color: 0xccffff, transparent: true, opacity: 0.8 });
+        starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+        const starMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.8 });
         const starField = new THREE.LineSegments(starGeo, starMat);
         scene.add(starField);
 
-        // --- GAME STATE & MISSION OBJECTIVES ---
-        let gameActive = false;
-        let score = 0;
-        let shields = 100;
-        let warpFactor = 1;
-        let missionProgress = 0; // 0 to 100%
-        let bossActive = false;
-        let boss = null;
-        let bossHealth = 100;
+        // --- GAME STATE ---
+        let gameActive = false, score = 0, shields = 100, warpFactor = 1, missionProgress = 0, sectorCount = 1;
+        let bossActive = false, boss = null, bossHealth = 100;
+        let rapidFireActive = false, rapidFireTimer = 0;
+        let lasers = [], enemies = [], powerups = [];
+        let targetX = 0, targetY = 0, keys = {}, lastShotTime = 0;
+        let touchStartX = 0, touchStartY = 0, shipStartX = 0, shipStartY = 0;
 
-        let lasers = [];
-        let enemies = [];
-        let targetX = 0, targetY = 0;
-        let keys = {};
-        let lastShotTime = 0;
-
-        // Relative Touch Tracking Variables
-        let touchStartX = 0, touchStartY = 0;
-        let shipStartX = 0, shipStartY = 0;
-
-        window.addEventListener('mousemove', (e) => {
-            if (!gameActive) return;
-            const mouseX = (e.clientX / window.innerWidth) * 2 - 1;
-            targetX = mouseX * 6;
-            const mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
-            targetY = mouseY * 4;
-        });
-
-        window.addEventListener('touchstart', (e) => {
-            if (!gameActive) return;
-            if (e.touches.length > 0) {
-                touchStartX = e.touches[0].clientX;
-                touchStartY = e.touches[0].clientY;
-                shipStartX = targetX;
-                shipStartY = targetY;
-            }
-            fireLaser();
-        }, { passive: true });
-
-        window.addEventListener('touchmove', (e) => {
-            if (!gameActive || e.touches.length === 0) return;
-            const touch = e.touches[0];
-            const deltaX = (touch.clientX - touchStartX) * 0.025;
-            const deltaY = (touch.clientY - touchStartY) * 0.025;
-            
-            targetX = THREE.MathUtils.clamp(shipStartX + deltaX, -6, 6);
-            targetY = THREE.MathUtils.clamp(shipStartY - deltaY, -3.5, 3.5);
-        }, { passive: true });
-
-        window.addEventListener('keydown', (e) => {
-            keys[e.code] = true;
-            if (e.code === 'Space' && gameActive) fireLaser();
-        });
+        window.addEventListener('mousemove', (e) => { if (!gameActive) return; const mouseX = (e.clientX / window.innerWidth) * 2 - 1; targetX = mouseX * 6; const mouseY = -(e.clientY / window.innerHeight) * 2 + 1; targetY = mouseY * 4; });
+        window.addEventListener('touchstart', (e) => { if (!gameActive) return; if (e.touches.length > 0) { touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; shipStartX = targetX; shipStartY = targetY; } fireLaser(); }, { passive: true });
+        window.addEventListener('touchmove', (e) => { if (!gameActive || e.touches.length === 0) return; const touch = e.touches[0]; const deltaX = (touch.clientX - touchStartX) * 0.025; const deltaY = (touch.clientY - touchStartY) * 0.025; targetX = THREE.MathUtils.clamp(shipStartX + deltaX, -6, 6); targetY = THREE.MathUtils.clamp(shipStartY - deltaY, -3.5, 3.5); }, { passive: true });
+        window.addEventListener('keydown', (e) => { keys[e.code] = true; if (e.code === 'Space' && gameActive) fireLaser(); });
         window.addEventListener('keyup', (e) => { keys[e.code] = false; });
         window.addEventListener('click', () => { if (gameActive) fireLaser(); });
 
         function fireLaser() {
             const now = Date.now();
-            if (now - lastShotTime < 150) return;
-            lastShotTime = now;
-
-            playSound('laser');
-            const laserGeo = new THREE.CylinderGeometry(0.05, 0.05, 1.2, 8);
-            laserGeo.rotateX(Math.PI / 2);
-            const laserMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
-            
-            [-1.0, 1.0].forEach(offsetX => {
-                const laser = new THREE.Mesh(laserGeo, laserMat);
-                laser.position.set(playerGroup.position.x + offsetX, playerGroup.position.y, playerGroup.position.z - 1);
-                scene.add(laser);
-                lasers.push(laser);
-            });
+            if (now - lastShotTime < (rapidFireActive ? 50 : 150)) return;
+            lastShotTime = now; playSound('laser');
+            const laserGeo = new THREE.CylinderGeometry(0.05, 0.05, 1.2, 8); laserGeo.rotateX(Math.PI / 2);
+            const laserMat = new THREE.MeshBasicMaterial({ color: (rapidFireActive ? 0xffff00 : 0x00ffff) });
+            [-1.0, 1.0].forEach(offsetX => { const laser = new THREE.Mesh(laserGeo, laserMat); laser.position.set(playerGroup.position.x + offsetX, playerGroup.position.y, playerGroup.position.z - 1); scene.add(laser); lasers.push(laser); });
         }
 
-        function spawnEnemy() {
-            if (!gameActive || bossActive) return;
-            const isDrone = Math.random() > 0.4;
-            let geo, mat;
-
-            if (isDrone) {
-                geo = new THREE.ConeGeometry(0.6, 1.5, 8);
-                geo.rotateX(Math.PI / 2);
-                mat = new THREE.MeshStandardMaterial({ color: 0xff2222, metalness: 0.8, roughness: 0.2 });
-            } else {
-                geo = new THREE.DodecahedronGeometry(Math.random() * 0.8 + 0.6);
-                mat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.9 });
-            }
-
-            const enemy = new THREE.Mesh(geo, mat);
-            enemy.position.set((Math.random() - 0.5) * 12, (Math.random() - 0.5) * 8, -100);
-            enemy.userData = { rotSpeed: new THREE.Vector3(Math.random()*0.05, Math.random()*0.05, 0) };
-            scene.add(enemy);
-            enemies.push(enemy);
+        function spawnEnemy() { if (!gameActive || bossActive) return;
+            const enemy = Math.random() > 0.4 ? new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.5, 8), new THREE.MeshStandardMaterial({ color: 0xff2222, metalness: 0.8 })) : new THREE.Mesh(new THREE.DodecahedronGeometry(0.9), new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.9 }));
+            if (enemy.geometry.type === "ConeGeometry") enemy.geometry.rotateX(Math.PI / 2);
+            enemy.position.set((Math.random() - 0.5) * 12, (Math.random() - 0.5) * 8, -100); enemy.userData = { rotSpeed: new THREE.Vector3(Math.random()*0.05, Math.random()*0.05, 0) }; scene.add(enemy); enemies.push(enemy);
         }
-
         setInterval(spawnEnemy, 900);
 
-        function spawnBoss() {
-            bossActive = true;
-            missionProgress = 100;
-            document.getElementById('mission-bar').style.width = '100%';
-            document.getElementById('boss-hud').classList.remove('hidden');
+        function spawnPowerup(pos, type) {
+            const mat = new THREE.MeshStandardMaterial({ color: (type === 'shield' ? 0x00ffff : 0xffff00), transparent: true, opacity: 0.9, emissive: (type === 'shield' ? 0x00ffff : 0xffff00), emissiveIntensity: 0.5 });
+            const p = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), mat); p.position.copy(pos); p.userData = { type: type }; scene.add(p); powerups.push(p);
+        }
 
-            // Create Boss (Greenish Klingon Bird-of-Prey style geometry)
-            const bossGeo = new THREE.ConeGeometry(2.5, 4, 6);
-            bossGeo.rotateX(Math.PI / 2);
-            const bossMat = new THREE.MeshStandardMaterial({ color: 0x228833, metalness: 0.7, roughness: 0.3 });
-            boss = new THREE.Mesh(bossGeo, bossMat);
-            boss.position.set(0, 0, -120);
-            scene.add(boss);
+        // Borg Cube Boss Battle (Out of Warp)
+        function spawnBoss() {
+            bossActive = true; missionProgress = 100;
+            document.getElementById('boss-hud').classList.remove('hidden');
+            document.getElementById('objective-title').innerText = "OBJECTIVE: DESTROY THE BORG CUBE";
+            document.getElementById('objective-title').classList.add('text-red-400');
+            document.getElementById('warp-val').innerText = "DISENGAGED";
+            document.getElementById('warp-val').classList.add('text-red-500');
+
+            if (borgTexture) {
+                boss = new THREE.Mesh(new THREE.BoxGeometry(15, 15, 15), new THREE.MeshStandardMaterial({ map: borgTexture, metalness: 0.2, roughness: 0.9 }));
+            } else {
+                boss = new THREE.Mesh(new THREE.BoxGeometry(15, 15, 15), new THREE.MeshStandardMaterial({ color: 0x228833, wireframe: true })); // Wireframe fallback
+            }
+            boss.position.set(0, 0, -120); scene.add(boss);
         }
 
         function sectorComplete() {
-            bossActive = false;
-            bossHealth = 100;
-            missionProgress = 0;
-            warpFactor += 1;
+            bossActive = false; bossHealth = 100; missionProgress = 0; sectorCount += 1;
             document.getElementById('boss-hud').classList.add('hidden');
-            playSound('victory');
-            score += 2500; // Bonus points for clearing sector
+            document.getElementById('boss-health-bar').style.width = '100%';
+            document.getElementById('objective-title').innerText = "SECTOR " + sectorCount + " PROGRESS";
+            document.getElementById('objective-title').classList.remove('text-red-400');
+            document.getElementById('warp-val').innerText = "ENGAGED";
+            document.getElementById('warp-val').classList.remove('text-red-500');
+            document.getElementById('menu-desc').innerText = "Sector " + sectorCount + " objective: Subspace interference detected. Defeat any Borg flagship forces.";
+            rapidFireActive = false; rapidFireTimer = 0; document.getElementById('powerup-hud').classList.add('hidden');
+            playSound('victory'); score += 2500;
         }
 
         // --- GAME LOOP ---
         function animate() {
             requestAnimationFrame(animate);
-
             if (gameActive) {
                 playerGroup.position.x += (targetX - playerGroup.position.x) * 0.1;
                 playerGroup.position.y += (targetY - playerGroup.position.y) * 0.1;
                 playerGroup.rotation.z = (playerGroup.position.x - targetX) * -0.05;
 
-                // STRETCHED 5-IMAGE POSITION-MAPPED BLENDING SYSTEM
-                if (shipMesh1 && shipMesh2 && centerTexture && topTexture && midTopTexture && midBottomTexture && bottomTexture) {
-                    const y = playerGroup.position.y;
-                    let texA = centerTexture, texB = centerTexture, mix = 0;
-                    let targetTilt = 0;
-
-                    if (y <= -2.5) {
-                        texA = topTexture; texB = topTexture; mix = 0; targetTilt = -0.4;
-                    } else if (y > -2.5 && y <= -1.5) {
-                        texA = topTexture; texB = midTopTexture; mix = (y - (-2.5)) / (-1.5 - (-2.5)); targetTilt = THREE.MathUtils.lerp(-0.4, -0.2, mix);
-                    } else if (y > -1.5 && y <= -0.5) {
-                        texA = midTopTexture; texB = centerTexture; mix = (y - (-1.5)) / (-0.5 - (-1.5)); targetTilt = THREE.MathUtils.lerp(-0.2, 0, mix);
-                    } else if (y > -0.5 && y <= 1.8) {
-                        texA = centerTexture; texB = centerTexture; mix = 0; targetTilt = 0;
-                    } else if (y > 1.8 && y <= 2.6) {
-                        texA = centerTexture; texB = midBottomTexture; mix = (y - 1.8) / (2.6 - 1.8); targetTilt = THREE.MathUtils.lerp(0, 0.15, mix);
-                    } else if (y > 2.6 && y <= 3.2) {
-                        texA = midBottomTexture; texB = bottomTexture; mix = (y - 2.6) / (3.2 - 2.6); targetTilt = THREE.MathUtils.lerp(0.15, 0.35, mix);
-                    } else {
-                        texA = bottomTexture; texB = bottomTexture; mix = 0; targetTilt = 0.35;
-                    }
-
-                    material1.map = texA;
-                    material2.map = texB;
-                    material1.needsUpdate = true;
-                    material2.needsUpdate = true;
-                    material1.opacity = 1.0 - mix;
-                    material2.opacity = mix;
-
+                // Ship Angle Blending Logic
+                if (material1 && material2 && centerTexture && topTexture && midTopTexture && midBottomTexture && bottomTexture) {
+                    const y = playerGroup.position.y; let texA = centerTexture, texB = centerTexture, mix = 0, targetTilt = 0;
+                    if (y <= -2.5) { texA = topTexture; mix = 0; targetTilt = -0.4; } 
+                    else if (y > -2.5 && y <= -1.5) { texA = topTexture; texB = midTopTexture; mix = (y - (-2.5)) / (-1.5 - (-2.5)); targetTilt = THREE.MathUtils.lerp(-0.4, -0.2, mix); } 
+                    else if (y > -1.5 && y <= -0.5) { texA = midTopTexture; texB = centerTexture; mix = (y - (-1.5)) / (-0.5 - (-1.5)); targetTilt = THREE.MathUtils.lerp(-0.2, 0, mix); } 
+                    else if (y > -0.5 && y <= 1.8) { texA = centerTexture; texB = centerTexture; mix = 0; targetTilt = 0; } 
+                    else if (y > 1.8 && y <= 2.6) { texA = centerTexture; texB = midBottomTexture; mix = (y - 1.8) / (2.6 - 1.8); targetTilt = THREE.MathUtils.lerp(0, 0.15, mix); } 
+                    else if (y > 2.6 && y <= 3.2) { texA = midBottomTexture; texB = bottomTexture; mix = (y - 2.6) / (3.2 - 2.6); targetTilt = THREE.MathUtils.lerp(0.15, 0.35, mix); } 
+                    else { texA = bottomTexture; mix = 0; targetTilt = 0.35; }
+                    material1.map = texA; material2.map = texB; material1.opacity = 1.0 - mix; material2.opacity = mix; material1.needsUpdate = true; material2.needsUpdate = true;
                     playerGroup.rotation.x += (targetTilt - playerGroup.rotation.x) * 0.15;
                 }
 
-                // Keyboard movement fallback
                 if (keys['ArrowLeft'] || keys['KeyA']) targetX = Math.max(targetX - 0.2, -6);
                 if (keys['ArrowRight'] || keys['KeyD']) targetX = Math.min(targetX + 0.2, 6);
                 if (keys['ArrowUp'] || keys['KeyW']) targetY = Math.min(targetY + 0.2, 4);
                 if (keys['ArrowDown'] || keys['KeyS']) targetY = Math.max(targetY - 0.2, -4);
 
-                // Update Mission Objective Progress
+                // Progressive Objectives and Warp (Only in Warp)
                 if (!bossActive) {
-                    missionProgress += 0.05;
-                    if (missionProgress >= 100) {
-                        missionProgress = 100;
-                        spawnBoss();
+                    missionProgress += (0.05 + (sectorCount * 0.01));
+                    warpFactor = 1 + (sectorCount - 1) * 3;
+                    if (missionProgress >= 100) spawnBoss();
+                    
+                    // Animate Warp Star Streaks (Warping)
+                    const streakLength = 1.5 + (warpFactor * 0.8); const speed = 0.6 + (warpFactor * 0.4);
+                    const positions = starGeo.attributes.position.array;
+                    for (let i = 0; i < positions.length; i += 6) {
+                        positions[i+2] += speed; positions[i+5] = positions[i+2] - streakLength;
+                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 120, ry = (Math.random() - 0.5) * 120, rz = -250; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
                     }
+                } else {
+                    // Out of Warp (Stars static, short tails)
+                    const positions = starGeo.attributes.position.array;
+                    for (let i = 0; i < positions.length; i += 6) { positions[i+5] = positions[i+2] - 0.5; }
                 }
                 document.getElementById('mission-bar').style.width = missionProgress + '%';
-
-                score += 1;
-                document.getElementById('score-val').innerText = String(score).padStart(6, '0');
-                document.getElementById('warp-val').innerText = `WARP ${warpFactor}`;
-
-                // Animate Warp Star Streaks
-                const positions = starGeo.attributes.position.array;
-                const streakLength = 1.5 + (warpFactor * 0.8);
-                const speed = 0.6 + (warpFactor * 0.4);
-
-                for (let i = 0; i < positions.length; i += 6) {
-                    positions[i+2] += speed; 
-                    positions[i+5] = positions[i+2] - streakLength; 
-
-                    if (positions[i+2] > 15) {
-                        const rx = (Math.random() - 0.5) * 120;
-                        const ry = (Math.random() - 0.5) * 120;
-                        const rz = -250;
-                        positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz;
-                        positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength;
-                    }
-                }
                 starGeo.attributes.position.needsUpdate = true;
+
+                score += (bossActive ? 5 : 1);
+                document.getElementById('score-val').innerText = String(score).padStart(6, '0');
+
+                // Rapid Fire Powerup Timer
+                if (rapidFireActive) { rapidFireTimer -= 1; if (rapidFireTimer <= 0) { rapidFireActive = false; document.getElementById('powerup-hud').classList.add('hidden'); } }
 
                 // Boss Logic
                 if (bossActive && boss) {
-                    if (boss.position.z < -15) boss.position.z += 0.3; // Approach player
-                    boss.rotation.y += 0.01;
-
-                    // Collision check with player
-                    if (boss.position.distanceTo(playerGroup.position) < 2.5) {
-                        shields -= 40;
-                        document.getElementById('shield-bar').style.width = shields + '%';
-                        playSound('explosion');
-                        if (shields <= 0) endGame();
-                    }
-
-                    // Laser hits boss
+                    if (boss.position.z < -25) boss.position.z += 0.4;
+                    boss.rotation.y += 0.005; boss.rotation.x += 0.003;
+                    if (boss.position.distanceTo(playerGroup.position) < 8.0) { shields -= 50; document.getElementById('shield-bar').style.width = shields + '%'; playSound('explosion'); if (shields <= 0) endGame(); }
                     for (let j = lasers.length - 1; j >= 0; j--) {
-                        if (boss.position.distanceTo(lasers[j].position) < 3.0) {
-                            playSound('explosion');
-                            bossHealth -= 5;
-                            document.getElementById('boss-health-bar').style.width = bossHealth + '%';
-                            scene.remove(lasers[j]);
-                            lasers.splice(j, 1);
-
-                            if (bossHealth <= 0) {
-                                scene.remove(boss);
-                                boss = null;
-                                sectorComplete();
-                            }
-                            break;
-                        }
+                        if (boss.position.distanceTo(lasers[j].position) < 8.0) { playSound('explosion'); bossHealth -= (rapidFireActive ? 2 : 1); document.getElementById('boss-health-bar').style.width = bossHealth + '%'; scene.remove(lasers[j]); lasers.splice(j, 1); if (bossHealth <= 0) { scene.remove(boss); boss = null; sectorComplete(); } break; }
                     }
                 }
 
                 // Move Lasers
-                for (let i = lasers.length - 1; i >= 0; i--) {
-                    lasers[i].position.z -= 3;
-                    if (lasers[i].position.z < -100) {
-                        scene.remove(lasers[i]);
-                        lasers.splice(i, 1);
-                    }
-                }
+                for (let i = lasers.length - 1; i >= 0; i--) { lasers[i].position.z -= 3; if (lasers[i].position.z < -100) { scene.remove(lasers[i]); lasers.splice(i, 1); } }
 
-                // Move Enemies & Collisions
-                for (let i = enemies.length - 1; i >= 0; i--) {
-                    const en = enemies[i];
-                    en.position.z += 0.6 + (warpFactor * 0.3);
-                    en.rotation.x += en.userData.rotSpeed.x;
-                    en.rotation.y += en.userData.rotSpeed.y;
+                // Move Powerups and Collections
+                for (let i = powerups.length - 1; i >= 0; i--) { const p = powerups[i]; p.position.z += speed || 0.6; p.rotation.y += 0.05; if (p.position.distanceTo(playerGroup.position) < 1.8) { playSound('powerup'); score += 500; if (p.userData.type === 'shield') { shields = Math.min(shields + 25, 100); document.getElementById('shield-bar').style.width = shields + '%'; } else if (p.userData.type === 'rapidfire') { rapidFireActive = true; rapidFireTimer = 420; document.getElementById('powerup-hud').classList.remove('hidden'); } scene.remove(p); powerups.splice(i, 1); continue; } if (p.position.z > 10) { scene.remove(p); powerups.splice(i, 1); } }
 
-                    if (en.position.distanceTo(playerGroup.position) < 1.5) {
-                        playSound('explosion');
-                        shields -= 25;
-                        document.getElementById('shield-bar').style.width = shields + '%';
-                        scene.remove(en);
-                        enemies.splice(i, 1);
-
-                        if (shields <= 0) endGame();
-                        continue;
-                    }
-
-                    let destroyed = false;
-                    for (let j = lasers.length - 1; j >= 0; j--) {
-                        if (en.position.distanceTo(lasers[j].position) < 1.2) {
-                            playSound('explosion');
-                            score += 150;
-                            scene.remove(en);
-                            enemies.splice(i, 1);
-                            scene.remove(lasers[j]);
-                            lasers.splice(j, 1);
-                            destroyed = true;
-                            break;
-                        }
-                    }
-                    if (destroyed) continue;
-
-                    if (en.position.z > 10) {
-                        scene.remove(en);
-                        enemies.splice(i, 1);
-                    }
-                }
+                // Move Enemies and Collisions
+                for (let i = enemies.length - 1; i >= 0; i--) { const en = enemies[i]; en.position.z += (speed || 0.6) + 0.1; en.rotation.x += en.userData.rotSpeed.x; en.rotation.y += en.userData.rotSpeed.y; if (en.position.distanceTo(playerGroup.position) < 1.5) { playSound('explosion'); shields -= 25; document.getElementById('shield-bar').style.width = shields + '%'; scene.remove(en); enemies.splice(i, 1); if (shields <= 0) endGame(); continue; } let destroyed = false; for (let j = lasers.length - 1; j >= 0; j--) { if (en.position.distanceTo(lasers[j].position) < 1.2) { playSound('explosion'); score += 150; if (Math.random() < 0.2) spawnPowerup(en.position, (Math.random() < 0.6 ? 'rapidfire' : 'shield')); scene.remove(en); enemies.splice(i, 1); scene.remove(lasers[j]); lasers.splice(j, 1); destroyed = true; break; } } if (destroyed) continue; if (en.position.z > 10) { scene.remove(en); enemies.splice(i, 1); } }
             }
-
             renderer.render(scene, camera);
         }
 
-        function startGame() {
-            initAudio();
-            score = 0;
-            shields = 100;
-            warpFactor = 1;
-            missionProgress = 0;
-            bossActive = false;
-            if (boss) { scene.remove(boss); boss = null; }
-            targetX = 0;
-            targetY = 0;
-            playerGroup.position.set(0, 0, 0);
-            document.getElementById('shield-bar').style.width = '100%';
-            document.getElementById('mission-bar').style.width = '0%';
-            document.getElementById('boss-hud').classList.add('hidden');
-            document.getElementById('menu-screen').classList.add('hidden');
-            document.getElementById('final-score-container').classList.add('hidden');
-
-            enemies.forEach(e => scene.remove(e));
-            enemies = [];
-            lasers.forEach(l => scene.remove(l));
-            lasers = [];
-
-            gameActive = true;
-        }
-
-        function endGame() {
-            gameActive = false;
-            document.getElementById('final-score').innerText = score;
-            document.getElementById('final-score-container').classList.remove('hidden');
-            document.getElementById('start-btn').innerText = 'RE-ENGAGE WARP DRIVE';
-            document.getElementById('menu-screen').classList.remove('hidden');
-        }
-
+        function startGame() { initAudio(); score = 0; shields = 100; warpFactor = 1; missionProgress = 0; bossActive = false; if (boss) { scene.remove(boss); boss = null; } targetX = 0; targetY = 0; playerGroup.position.set(0, 0, 0); document.getElementById('shield-bar').style.width = '100%'; document.getElementById('mission-bar').style.width = '0%'; document.getElementById('boss-hud').classList.add('hidden'); document.getElementById('menu-screen').classList.add('hidden'); document.getElementById('final-score-container').classList.add('hidden'); enemies.forEach(e => scene.remove(e)); enemies = []; lasers.forEach(l => scene.remove(l)); lasers = []; powerups.forEach(p => scene.remove(p)); powerups = []; gameActive = true; }
+        function endGame() { gameActive = false; document.getElementById('final-score').innerText = score; document.getElementById('final-score-container').classList.remove('hidden'); document.getElementById('start-btn').innerText = 'RE-ENGAGE WARP DRIVE'; document.getElementById('menu-screen').classList.remove('hidden'); }
         document.getElementById('start-btn').addEventListener('click', startGame);
-        document.getElementById('start-btn').addEventListener('touchend', (e) => {
-            e.preventDefault();
-            startGame();
-        });
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-
+        window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
         animate();
     </script>
 </body>
