@@ -234,8 +234,8 @@
         setInterval(spawnEnemy, 900);
 
         function spawnPowerup(pos, type) {
-            const mat = new THREE.MeshStandardMaterial({ color: (type === 'shield' ? 0x00ffff : 0xffff00), emissive: (type === 'shield' ? 0x00ffff : 0xffff00), emissiveIntensity: 0.8 });
-            const p = new THREE.Mesh(new THREE.OctahedronGeometry(0.7), mat);
+            const mat = new THREE.MeshStandardMaterial({ color: (type === 'shield' ? 0x00ffff : 0xffff00), emissive: (type === 'shield' ? 0x00ffff : 0xffff00), emissiveIntensity: 0.9 });
+            const p = new THREE.Mesh(new THREE.OctahedronGeometry(0.9), mat);
             p.position.copy(pos); p.userData = { type: type }; scene.add(p); powerups.push(p);
         }
 
@@ -247,13 +247,12 @@
             document.getElementById('warp-val').innerText = "DISENGAGED";
             document.getElementById('warp-val').classList.add('text-red-500');
 
-            // Clear normal enemies instantly when dropping out of warp
             enemies.forEach(e => scene.remove(e));
             enemies = [];
 
             const bossMat = borgTexture ? new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x228833, wireframe: true });
             boss = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), bossMat);
-            boss.position.set(0, 2.0, -90); // Spawns further away and starts moving closer
+            boss.position.set(0, 2.0, -90); 
             scene.add(boss);
         }
 
@@ -310,15 +309,13 @@
                         if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 150, ry = (Math.random() - 0.5) * 150, rz = -350; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
                     }
                 } else {
-                    // FULL DROP OUT OF WARP: Stars are static background points
                     const positions = starGeo.attributes.position.array;
                     for (let i = 0; i < positions.length; i += 6) { 
                         positions[i+5] = positions[i+2]; 
                     }
                     
-                    // Borg Cube moves closer while firing
                     if (boss && boss.position.z < -30) {
-                        boss.position.z += 0.25; // Moves closer towards the player
+                        boss.position.z += 0.25; 
                     }
 
                     borgLaserTimer++;
@@ -359,9 +356,10 @@
 
                 for (let i = lasers.length - 1; i >= 0; i--) { lasers[i].position.z -= 3; if (lasers[i].position.z < -100) { scene.remove(lasers[i]); lasers.splice(i, 1); } }
 
+                // Increased collection radius and movement speed for power-ups
                 for (let i = powerups.length - 1; i >= 0; i--) { 
-                    const p = powerups[i]; p.position.z += speed; p.rotation.y += 0.05; 
-                    if (p.position.distanceTo(playerGroup.position) < 2.0) { 
+                    const p = powerups[i]; p.position.z += (speed || 0.6); p.rotation.y += 0.05; 
+                    if (p.position.distanceTo(playerGroup.position) < 3.0) { 
                         playSound('powerup'); score += 500; 
                         if (p.userData.type === 'shield') { shields = Math.min(shields + 25, 100); document.getElementById('shield-bar').style.width = shields + '%'; } 
                         else if (p.userData.type === 'rapidfire') { rapidFireActive = true; rapidFireTimer = 420; document.getElementById('powerup-hud').classList.remove('hidden'); } 
@@ -382,7 +380,8 @@
                         for (let j = lasers.length - 1; j >= 0; j--) { 
                             if (en.position.distanceTo(lasers[j].position) < 1.5) { 
                                 playSound('explosion'); score += 150; 
-                                if (Math.random() < 0.4) spawnPowerup(en.position, (Math.random() < 0.5 ? 'rapidfire' : 'shield')); 
+                                // Higher 60% chance to drop a power-up when destroying enemies during warp
+                                if (Math.random() < 0.6) spawnPowerup(en.position, (Math.random() < 0.5 ? 'rapidfire' : 'shield')); 
                                 scene.remove(en); enemies.splice(i, 1); scene.remove(lasers[j]); lasers.splice(j, 1); destroyed = true; break; 
                             } 
                         } 
