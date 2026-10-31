@@ -334,39 +334,39 @@
                 playerGroup.position.y += (targetY - playerGroup.position.y) * 0.1;
                 playerGroup.rotation.z = (playerGroup.position.x - targetX) * -0.05;
 
-                // 5-IMAGE POSITION-MAPPED BLENDING SYSTEM
+                // STRETCHED 5-IMAGE POSITION-MAPPED BLENDING SYSTEM
                 if (shipMesh1 && shipMesh2 && centerTexture && topTexture && midTopTexture && midBottomTexture && bottomTexture) {
                     const y = playerGroup.position.y;
                     let texA = centerTexture, texB = centerTexture, mix = 0;
                     let targetTilt = 0;
 
-                    if (y <= -1.2) {
+                    if (y <= -2.2) {
                         // 1. Fully Top View
                         texA = topTexture; texB = topTexture; mix = 0;
                         targetTilt = -0.4;
-                    } else if (y > -1.2 && y <= -0.6) {
-                        // 2. Transition: Top -> Mid-Top
+                    } else if (y > -2.2 && y <= -1.2) {
+                        // 2. Transition: Top -> Mid-Top (Stretched)
                         texA = topTexture; texB = midTopTexture;
-                        mix = (y - (-1.2)) / (-0.6 - (-1.2));
+                        mix = (y - (-2.2)) / (-1.2 - (-2.2));
                         targetTilt = THREE.MathUtils.lerp(-0.4, -0.2, mix);
-                    } else if (y > -0.6 && y <= -0.2) {
-                        // 3. Transition: Mid-Top -> Center
+                    } else if (y > -1.2 && y <= -0.4) {
+                        // 3. Transition: Mid-Top -> Center (Stretched)
                         texA = midTopTexture; texB = centerTexture;
-                        mix = (y - (-0.6)) / (-0.2 - (-0.6));
+                        mix = (y - (-1.2)) / (-0.4 - (-1.2));
                         targetTilt = THREE.MathUtils.lerp(-0.2, 0, mix);
-                    } else if (y > -0.2 && y <= 0.2) {
-                        // 4. Center Dead Zone
+                    } else if (y > -0.4 && y <= 0.4) {
+                        // 4. Center Dead Zone (Wider comfy zone in the middle)
                         texA = centerTexture; texB = centerTexture; mix = 0;
                         targetTilt = 0;
-                    } else if (y > 0.2 && y <= 0.6) {
-                        // 5. Transition: Center -> Mid-Bottom
+                    } else if (y > 0.4 && y <= 1.2) {
+                        // 5. Transition: Center -> Mid-Bottom (Stretched)
                         texA = centerTexture; texB = midBottomTexture;
-                        mix = (y - 0.2) / (0.6 - 0.2);
+                        mix = (y - 0.4) / (1.2 - 0.4);
                         targetTilt = THREE.MathUtils.lerp(0, 0.15, mix);
-                    } else if (y > 0.6 && y <= 1.2) {
-                        // 6. Transition: Mid-Bottom -> Bottom
+                    } else if (y > 1.2 && y <= 2.2) {
+                        // 6. Transition: Mid-Bottom -> Bottom (Stretched)
                         texA = midBottomTexture; texB = bottomTexture;
-                        mix = (y - 0.6) / (1.2 - 0.6);
+                        mix = (y - 1.2) / (2.2 - 1.2);
                         targetTilt = THREE.MathUtils.lerp(0.15, 0.35, mix);
                     } else {
                         // 7. Fully Bottom View
