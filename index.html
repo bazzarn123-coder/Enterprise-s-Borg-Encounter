@@ -254,7 +254,7 @@
 
             enemies.forEach(e => scene.remove(e));
             enemies = [];
-            shieldStream.visible = false; 
+            shieldStream.visible = false; // Hide shield stream during boss fight
 
             const bossMat = borgTexture ? new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x228833, wireframe: true });
             boss = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), bossMat);
@@ -273,7 +273,10 @@
             document.getElementById('warp-val').classList.remove('text-red-500');
             document.getElementById('menu-desc').innerText = "Sector " + sectorCount + " objective: Subspace interference detected. Defeat any Borg flagship forces.";
             rapidFireActive = false; rapidFireTimer = 0; document.getElementById('powerup-hud').classList.add('hidden');
+            
+            // Re-enable shield stream for the new sector warp
             shieldStream.visible = true;
+
             playSound('victory'); score += 3500;
         }
 
@@ -308,6 +311,9 @@
                 const positions = starGeo.attributes.position.array;
 
                 if (!bossActive) {
+                    // Ensure shield stream is visible during warp across all sectors
+                    shieldStream.visible = true;
+
                     missionProgress += (0.05 + (sectorCount * 0.01));
                     warpFactor = 1 + (sectorCount - 1) * 3;
                     if (missionProgress >= 100) spawnBoss();
@@ -327,11 +333,9 @@
                         if (streamPos[i*3+2] > 10) {
                             streamPos[i*3+2] = -240;
                         }
-                        // Smooth sine/cosine weaving curve
                         streamPos[i*3] = Math.sin(streamWaveOffset + (i * 0.15)) * 4.5;
                         streamPos[i*3+1] = Math.cos(streamWaveOffset * 0.8 + (i * 0.1)) * 2.5;
 
-                        // Check proximity to stream
                         const nodeVector = new THREE.Vector3(streamPos[i*3], streamPos[i*3+1], streamPos[i*3+2]);
                         if (nodeVector.distanceTo(playerGroup.position) < 2.5) {
                             closeToStream = true;
@@ -345,9 +349,8 @@
                         if (Math.random() < 0.15) playSound('shield-charge');
                     }
                 } else {
-                    // OUT OF WARP: Rich static background stars surrounding the ship
                     for (let i = 0; i < positions.length; i += 6) { 
-                        positions[i+5] = positions[i+2]; // zero tail length so they look like static star dots
+                        positions[i+5] = positions[i+2]; 
                     }
                     
                     if (boss && boss.position.z < -30) {
