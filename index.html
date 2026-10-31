@@ -124,98 +124,30 @@
         container.appendChild(renderer.domElement);
 
         // Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
         scene.add(ambientLight);
 
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1.4);
-        dirLight.position.set(5, 12, 8);
-        scene.add(dirLight);
+        // --- LOAD EXACT SHIP IMAGE AS 3D SPRITE ---
+        const textureLoader = new THREE.TextureLoader();
+        const playerGroup = new THREE.Group();
+        scene.add(playerGroup);
 
-        // --- PROCEDURAL USS ENTERPRISE MODEL ---
-        function createEnterprise() {
-            const group = new THREE.Group();
+        let player = null;
+        textureLoader.load('ship.png', (texture) => {
+            texture.generateMipmaps = true;
+            texture.minFilter = THREE.LinearMipmapLinearFilter;
             
-            const hullMat = new THREE.MeshStandardMaterial({ color: 0xdce3eb, roughness: 0.25, metalness: 0.85 });
-            const darkMat = new THREE.MeshStandardMaterial({ color: 0x333b45, roughness: 0.4, metalness: 0.6 });
-            const nacelleBodyMat = new THREE.MeshStandardMaterial({ color: 0xc8d2df, roughness: 0.3, metalness: 0.8 });
-            const glowMat = new THREE.MeshBasicMaterial({ color: 0x00e1ff });
-            const bussardMat = new THREE.MeshBasicMaterial({ color: 0xff2200 });
-            const deflectorMat = new THREE.MeshBasicMaterial({ color: 0xff7700 });
-
-            // 1. Saucer Section
-            const saucerGeo = new THREE.CylinderGeometry(2.2, 2.0, 0.25, 32);
-            const saucer = new THREE.Mesh(saucerGeo, hullMat);
-            saucer.position.set(0, 0, -1);
-            group.add(saucer);
-
-            // Bridge Module
-            const bridgeGeo = new THREE.CylinderGeometry(0.4, 0.45, 0.15, 16);
-            const bridge = new THREE.Mesh(bridgeGeo, darkMat);
-            bridge.position.set(0, 0.15, -1);
-            group.add(bridge);
-
-            // 2. Engineering Hull (Secondary Hull)
-            const engGeo = new THREE.CylinderGeometry(0.6, 0.7, 4.0, 16);
-            engGeo.rotateX(Math.PI / 2);
-            const engineeringHull = new THREE.Mesh(engGeo, hullMat);
-            engineeringHull.position.set(0, -0.5, 1.0);
-            group.add(engineeringHull);
-
-            // Deflector Dish
-            const deflectorGeo = new THREE.ConeGeometry(0.4, 0.3, 16);
-            deflectorGeo.rotateX(-Math.PI / 2);
-            const deflector = new THREE.Mesh(deflectorGeo, deflectorMat);
-            deflector.position.set(0, -0.5, -1.0);
-            group.add(deflector);
-
-            // 3. Connecting Neck
-            const neckGeo = new THREE.BoxGeometry(0.35, 1.0, 1.2);
-            const neck = new THREE.Mesh(neckGeo, hullMat);
-            neck.position.set(0, -0.25, 0.1);
-            neck.rotation.x = -0.2;
-            group.add(neck);
-
-            // 4. Warp Pylons
-            const pylonGeo = new THREE.BoxGeometry(2.4, 0.15, 1.0);
-            const pylon = new THREE.Mesh(pylonGeo, hullMat);
-            pylon.position.set(0, -0.1, 1.8);
-            pylon.rotation.z = 0.2;
-            group.add(pylon);
-
-            // 5. Warp Nacelles
-            const nacelleGeo = new THREE.CylinderGeometry(0.35, 0.35, 3.6, 16);
-            nacelleGeo.rotateX(Math.PI / 2);
-
-            const createNacelle = (xPos) => {
-                const nacelleGroup = new THREE.Group();
-                const body = new THREE.Mesh(nacelleGeo, nacelleBodyMat);
-                nacelleGroup.add(body);
-
-                // Glowing warp strip
-                const stripGeo = new THREE.BoxGeometry(0.1, 0.12, 2.8);
-                const strip = new THREE.Mesh(stripGeo, glowMat);
-                strip.position.set(0, 0.3, 0);
-                nacelleGroup.add(strip);
-
-                // Bussard Collector (Front Red Cap)
-                const bussardGeo = new THREE.SphereGeometry(0.35, 16, 16);
-                const bussard = new THREE.Mesh(bussardGeo, bussardMat);
-                bussard.position.set(0, 0, -1.8);
-                nacelleGroup.add(bussard);
-
-                nacelleGroup.position.set(xPos, 0, 1.8);
-                return nacelleGroup;
-            };
-
-            group.add(createNacelle(-1.5));
-            group.add(createNacelle(1.5));
-
-            group.scale.set(0.65, 0.65, 0.65);
-            return group;
-        }
-
-        const player = createEnterprise();
-        scene.add(player);
+            // Clean aspect ratio matching your ship image
+            const shipGeo = new THREE.PlaneGeometry(3.6, 1.6);
+            const shipMat = new THREE.MeshBasicMaterial({ 
+                map: texture, 
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+            
+            player = new THREE.Mesh(shipGeo, shipMat);
+            playerGroup.add(player);
+        });
 
         // --- STARFIELD (Realistic Distant Stars) ---
         const starCount = 1200;
@@ -284,9 +216,9 @@
             laserGeo.rotateX(Math.PI / 2);
             const laserMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
             
-            [-0.8, 0.8].forEach(offsetX => {
+            [-1.0, 1.0].forEach(offsetX => {
                 const laser = new THREE.Mesh(laserGeo, laserMat);
-                laser.position.set(player.position.x + offsetX, player.position.y, player.position.z - 1);
+                laser.position.set(playerGroup.position.x + offsetX, playerGroup.position.y, playerGroup.position.z - 1);
                 scene.add(laser);
                 lasers.push(laser);
             });
@@ -322,10 +254,9 @@
 
             if (gameActive) {
                 // Smooth ship movement interpolation
-                player.position.x += (targetX - player.position.x) * 0.1;
-                player.position.y += (targetY - player.position.y) * 0.1;
-                player.rotation.z = (player.position.x - targetX) * -0.05;
-                player.rotation.x = (player.position.y - targetY) * 0.05;
+                playerGroup.position.x += (targetX - playerGroup.position.x) * 0.1;
+                playerGroup.position.y += (targetY - playerGroup.position.y) * 0.1;
+                playerGroup.rotation.z = (playerGroup.position.x - targetX) * -0.05;
 
                 // Keyboard movement fallback
                 if (keys['ArrowLeft'] || keys['KeyA']) targetX = Math.max(targetX - 0.2, -6);
@@ -364,7 +295,7 @@
                     en.rotation.y += en.userData.rotSpeed.y;
 
                     // Player Collision
-                    if (en.position.distanceTo(player.position) < 1.5) {
+                    if (en.position.distanceTo(playerGroup.position) < 1.5) {
                         playSound('explosion');
                         shields -= 25;
                         document.getElementById('shield-bar').style.width = shields + '%';
@@ -411,7 +342,7 @@
             warpFactor = 1;
             targetX = 0;
             targetY = 0;
-            player.position.set(0, 0, 0);
+            playerGroup.position.set(0, 0, 0);
             document.getElementById('shield-bar').style.width = '100%';
             document.getElementById('menu-screen').classList.add('hidden');
             document.getElementById('final-score-container').classList.add('hidden');
