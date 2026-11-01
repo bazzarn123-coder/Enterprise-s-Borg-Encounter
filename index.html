@@ -348,13 +348,12 @@
             torpedoPickups.forEach(tp => scene.remove(tp)); torpedoPickups = [];
             shieldStream.visible = false; 
 
-            // Switch to static point stars around the Borg ship
             starField.visible = false;
             pointStarField.visible = true;
 
             const bossMat = borgTexture ? new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x228833, wireframe: true });
             boss = new THREE.Mesh(new THREE.PlaneGeometry(8.5, 8.5), bossMat);
-            boss.position.set(0, 1.2, -120); 
+            boss.position.set(0, 1.2, -45); 
             scene.add(boss);
         }
 
@@ -445,12 +444,12 @@
                     if (bossTransitionTimer > 0) {
                         bossTransitionTimer--;
                         speed = THREE.MathUtils.lerp(1.5, 0.05, 1 - (bossTransitionTimer / 120));
-                        if (boss && boss.position.z < -65) {
-                            boss.position.z += 0.45;
+                        if (boss && boss.position.z < -45) {
+                            boss.position.z += 0.65;
                         }
                     } else {
                         speed = 0.02;
-                        if (boss && boss.position.z < -65) boss.position.z = -65;
+                        if (boss && boss.position.z < -45) boss.position.z = -45;
                         borgLaserTimer++;
                         if (borgLaserTimer % 75 === 0) { 
                             fireBorgLaser();
