@@ -63,7 +63,7 @@
 
         <!-- Boss Health Bar -->
         <div id="boss-hud" class="w-full max-w-sm mx-auto hidden pointer-events-auto text-center px-4">
-            <p class="text-[8px] sm:text-[10px] text-red-400 font-bold tracking-widest mb-1 shadow-[0_0_5px_rgba(255,0,0,0.8)]">WARNING: OUT OF WARP - BORG CUBE APPROACHING</p>
+            <p id="boss-warning-text" class="text-[8px] sm:text-[10px] text-red-400 font-bold tracking-widest mb-1 shadow-[0_0_5px_rgba(255,0,0,0.8)]">WARNING: OUT OF WARP - ENEMY VESSEL APPROACHING</p>
             <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-red-500/60 shadow-[0_0_15px_rgba(255,0,0,0.5)]">
                 <div id="boss-health-bar" class="bg-red-600 h-full w-full transition-all duration-150"></div>
             </div>
@@ -87,7 +87,7 @@
     <div id="menu-screen" class="absolute inset-0 z-25 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 pointer-events-auto">
         <div class="hud-glass p-6 sm:p-8 rounded-2xl max-w-md w-full border border-cyan-500/50">
             <h1 id="menu-title" class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2 tracking-wider">ENTERPRISE'S BORG ENCOUNTER</h1>
-            <p id="menu-desc" class="text-cyan-200/70 text-xs sm:text-sm mb-6">Mobile Cruiser Mode: Navigate warp, shoot meteors, follow the shield stream, and defeat the Borg.</p>
+            <p id="menu-desc" class="text-cyan-200/70 text-xs sm:text-sm mb-6">Mobile Cruiser Mode: Navigate warp, shoot meteors, follow the shield stream, and defeat enemy flagships.</p>
             
             <div id="final-score-container" class="hidden mb-6">
                 <p class="text-xs text-cyan-300/70">MISSION REPORT - FINAL SCORE</p>
@@ -169,6 +169,9 @@
 
         let borgTexture = null;
         loadTransparentTexture('borg_cube.png', (tex) => { borgTexture = tex; });
+
+        let klingonTexture = null;
+        loadTransparentTexture('Klingon.png', (tex) => { klingonTexture = tex; });
 
         // --- STARFIELD SYSTEMS (High Density) ---
         const starCount = 4000;
@@ -309,7 +312,7 @@
             playSound('borg-laser');
             const laserGeo = new THREE.CylinderGeometry(0.08, 0.08, 2.5, 8);
             laserGeo.rotateX(Math.PI / 2);
-            const laserMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 }); 
+            const laserMat = new THREE.MeshBasicMaterial({ color: sectorCount === 1 ? 0x00ff88 : 0x00ff00 }); 
             const bLaser = new THREE.Mesh(laserGeo, laserMat);
             bLaser.position.set(boss.position.x + (Math.random() - 0.5) * 4, boss.position.y + (Math.random() - 0.5) * 4, boss.position.z);
             scene.add(bLaser);
@@ -341,7 +344,15 @@
             bossActive = true; bossTransitionTimer = 120; missionProgress = 100; borgLaserTimer = 0;
             bossHealth = maxBossHealth;
             document.getElementById('boss-hud').classList.remove('hidden');
-            document.getElementById('objective-title').innerText = "OBJECTIVE: DESTROY THE BORG CUBE";
+            
+            if (sectorCount === 1) {
+                document.getElementById('boss-warning-text').innerText = "WARNING: OUT OF WARP - KLINGON BIRD-OF-PREY APPROACHING";
+                document.getElementById('objective-title').innerText = "OBJECTIVE: DESTROY THE KLINGON VESSEL";
+            } else {
+                document.getElementById('boss-warning-text').innerText = "WARNING: OUT OF WARP - BORG CUBE APPROACHING";
+                document.getElementById('objective-title').innerText = "OBJECTIVE: DESTROY THE BORG CUBE";
+            }
+
             document.getElementById('objective-title').classList.add('text-red-400');
             document.getElementById('warp-val').innerText = "DISENGAGED";
             document.getElementById('warp-val').classList.add('text-red-500');
@@ -353,8 +364,15 @@
             starField.visible = false;
             pointStarField.visible = true;
 
-            const bossMat = borgTexture ? new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x228833, wireframe: true });
-            boss = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 5.0), bossMat);
+            let bossMat;
+            if (sectorCount === 1) {
+                bossMat = klingonTexture ? new THREE.MeshBasicMaterial({ map: klingonTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x338833, wireframe: true });
+                boss = new THREE.Mesh(new THREE.PlaneGeometry(6.0, 3.0), bossMat);
+            } else {
+                bossMat = borgTexture ? new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x228833, wireframe: true });
+                boss = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 5.0), bossMat);
+            }
+
             boss.position.set(0, 1.2, -120);
             boss.scale.set(1.0, 1.0, 1.0);
             scene.add(boss);
@@ -369,7 +387,7 @@
             document.getElementById('objective-title').classList.remove('text-red-400');
             document.getElementById('warp-val').innerText = "JUMPING TO WARP";
             document.getElementById('warp-val').classList.remove('text-red-500');
-            document.getElementById('menu-desc').innerText = "Sector " + sectorCount + " objective: Subspace interference detected. Defeat any Borg flagship forces.";
+            document.getElementById('menu-desc').innerText = "Sector " + sectorCount + " objective: Subspace interference detected. Defeat flagship forces.";
             
             shieldStream.visible = true;
             starField.visible = true;
@@ -586,7 +604,7 @@
         }
 
         function startGame() { 
-            initAudio(); score = 0; shields = 100; photonTorpedoes = 0; warpFactor = 1; missionProgress = 0; bossActive = false; jumpToWarpTimer = 0; 
+            initAudio(); score = 0; shields = 100; photonTorpedoes = 0; warpFactor = 1; missionProgress = 0; bossActive = false; jumpToWarpTimer = 0; sectorCount = 1; maxBossHealth = 300;
             
             const positions = starGeo.attributes.position.array;
             for(let i = 0; i < starOriginalPositions.length; i++) {
@@ -604,6 +622,8 @@
             shieldStream.visible = true;
             document.getElementById('shield-bar').style.width = '100%';
             document.getElementById('mission-bar').style.width = '0%'; 
+            document.getElementById('objective-title').innerText = "MISSION OBJECTIVE";
+            document.getElementById('objective-title').classList.remove('text-red-400');
             document.getElementById('boss-hud').classList.add('hidden'); 
             document.getElementById('menu-screen').classList.add('hidden'); 
             document.getElementById('final-score-container').classList.add('hidden'); 
