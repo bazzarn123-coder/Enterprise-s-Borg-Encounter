@@ -367,7 +367,8 @@
             let bossMat;
             if (sectorCount === 1) {
                 bossMat = klingonTexture ? new THREE.MeshBasicMaterial({ map: klingonTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x338833, wireframe: true });
-                boss = new THREE.Mesh(new THREE.PlaneGeometry(6.0, 3.0), bossMat);
+                // Reduced Klingon geometry size by half (from 6.0, 3.0 to 3.0, 1.5)
+                boss = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 1.5), bossMat);
             } else {
                 bossMat = borgTexture ? new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x228833, wireframe: true });
                 boss = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 5.0), bossMat);
