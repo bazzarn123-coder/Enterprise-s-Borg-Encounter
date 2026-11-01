@@ -25,37 +25,39 @@
     <!-- HUD Overlay -->
     <div class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-3 sm:p-5 max-w-full overflow-hidden box-border">
         <!-- Top Bar (Strictly Framed) -->
-        <div class="grid grid-cols-3 items-center w-full max-w-3xl mx-auto gap-2">
-            <!-- Shields & Score -->
-            <div class="hud-glass px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl flex items-center space-x-1.5 sm:space-x-3 text-cyan-400">
-                <div>
-                    <p class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest">SHIELDS</p>
-                    <div class="w-12 sm:w-20 bg-slate-800 h-2 rounded-full overflow-hidden mt-0.5 border border-cyan-500/40">
-                        <div id="shield-bar" class="bg-cyan-400 h-full w-full transition-all duration-300 shadow-[0_0_10px_#00aaff]"></div>
+        <div class="flex flex-col w-full max-w-3xl mx-auto gap-2">
+            <div class="grid grid-cols-2 items-center w-full gap-2">
+                <!-- Shields & Score -->
+                <div class="hud-glass px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl flex items-center space-x-1.5 sm:space-x-3 text-cyan-400">
+                    <div>
+                        <p class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest">SHIELDS</p>
+                        <div class="w-12 sm:w-20 bg-slate-800 h-2 rounded-full overflow-hidden mt-0.5 border border-cyan-500/40">
+                            <div id="shield-bar" class="bg-cyan-400 h-full w-full transition-all duration-300 shadow-[0_0_10px_#00aaff]"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest">TORP</p>
+                        <p id="torpedo-val" class="text-xs sm:text-sm font-black text-red-400">0</p>
+                    </div>
+                    <div>
+                        <p class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest">SCORE</p>
+                        <p id="score-val" class="text-xs sm:text-sm font-black text-white">000000</p>
                     </div>
                 </div>
-                <div>
-                    <p class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest">TORP</p>
-                    <p id="torpedo-val" class="text-xs sm:text-sm font-black text-red-400">0</p>
-                </div>
-                <div>
-                    <p class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest">SCORE</p>
-                    <p id="score-val" class="text-xs sm:text-sm font-black text-white">000000</p>
+
+                <!-- Warp Status -->
+                <div class="hud-glass px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl text-center text-cyan-400 ml-auto w-full">
+                    <p id="warp-title" class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest">WARP</p>
+                    <p id="warp-val" class="text-xs sm:text-sm font-black text-yellow-400 truncate">ENGAGED</p>
                 </div>
             </div>
 
-            <!-- Mission Progress / Sector Objective -->
-            <div class="hud-glass px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl text-center text-cyan-400 mx-auto w-full max-w-[140px]">
-                <p id="objective-title" class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest truncate">MISSION</p>
-                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-0.5 border border-cyan-500/40">
+            <!-- Mission Progress / Sector Objective (Moved Below Top Bar) -->
+            <div class="hud-glass px-3 py-2 rounded-xl text-center text-cyan-400 mx-auto w-full max-w-md">
+                <p id="objective-title" class="text-[8px] sm:text-[10px] text-cyan-300/75 tracking-widest truncate">MISSION OBJECTIVE</p>
+                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-1 border border-cyan-500/40">
                     <div id="mission-bar" class="bg-yellow-400 h-full w-0 transition-all duration-300 shadow-[0_0_10px_#ffaa00]"></div>
                 </div>
-            </div>
-
-            <!-- Warp Status -->
-            <div class="hud-glass px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl text-center text-cyan-400 ml-auto">
-                <p id="warp-title" class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest">WARP</p>
-                <p id="warp-val" class="text-xs sm:text-sm font-black text-yellow-400 truncate">ENGAGED</p>
             </div>
         </div>
 
@@ -111,7 +113,7 @@
             else if (type === 'torpedo') { osc.type = 'sine'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(80, now + 0.3); gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
             else if (type === 'borg-laser') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(80, now + 0.3); gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
             else if (type === 'explosion') { osc.type = 'square'; osc.frequency.setValueAtTime(120, now); osc.frequency.linearRampToValueAtTime(30, now + 0.4); gain.gain.setValueAtTime(0.25, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.4); osc.start(now); osc.stop(now + 0.4); }
-            else if (type === 'shield-charge') { osc.type = 'sine'; osc.frequency.setValueAtTime(520, now); osc.frequency.exponentialRampToValueAtTime(1046.5, now + 0.15); gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.15); osc.start(now); osc.stop(now + 0.15); }
+            else if (type === 'shield-charge') { osc.type = 'sine'; osc.frequency.setValueAtTime(520, now); osc.frequency.exponentialRampToValueAtTime(1046.5, now + 0.15); gain.gain.setValueAtTime(0.02, now); gain.gain.linearRampToValueAtTime(0.001, now + 0.15); osc.start(now); osc.stop(now + 0.15); } // Quieten noise to very quiet
             else if (type === 'torpedo-pickup') { osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(600, now + 0.2); gain.gain.setValueAtTime(0.25, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.2); osc.start(now); osc.stop(now + 0.2); }
             else if (type === 'victory') { osc.type = 'triangle'; osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(554.37, now + 0.2); osc.frequency.setValueAtTime(659.25, now + 0.4); gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.8); osc.start(now); osc.stop(now + 0.8); }
         }
@@ -200,7 +202,7 @@
         const starField = new THREE.LineSegments(starGeo, starMat);
         scene.add(starField);
 
-        // 2. Static Point Starfield (Clean procedural circular dots)
+        // 2. Static Point Starfield
         const dotCanvas = document.createElement('canvas');
         dotCanvas.width = 32; dotCanvas.height = 32;
         const dotCtx = dotCanvas.getContext('2d');
@@ -228,18 +230,18 @@
         pointStarField.visible = false;
         scene.add(pointStarField);
 
-        // --- SINGLE THIN WARP SHIELD STREAM ---
-        const streamNodeCount = 50;
+        // --- SINGLE CONTINUOUS WARP SHIELD STREAM LINE ---
+        const streamNodeCount = 60;
         const streamPositions = new Float32Array(streamNodeCount * 3);
         for(let i = 0; i < streamNodeCount; i++) {
             streamPositions[i*3] = Math.sin(i * 0.2) * 2.2;
             streamPositions[i*3+1] = Math.cos(i * 0.15) * 0.9;
-            streamPositions[i*3+2] = -i * 4;
+            streamPositions[i*3+2] = -i * 2.5;
         }
         const shieldStreamGeo = new THREE.BufferGeometry();
         shieldStreamGeo.setAttribute('position', new THREE.BufferAttribute(streamPositions, 3));
-        const streamMat = new THREE.PointsMaterial({ color: 0x00ffff, size: 0.25, transparent: true, opacity: 0.95 });
-        const shieldStream = new THREE.Points(shieldStreamGeo, streamMat);
+        const streamMat = new THREE.LineBasicMaterial({ color: 0x00ffff, linewidth: 3, transparent: true, opacity: 0.95 });
+        const shieldStream = new THREE.Line(shieldStreamGeo, streamMat);
         scene.add(shieldStream);
 
         // --- GAME STATE ---
@@ -353,7 +355,8 @@
 
             const bossMat = borgTexture ? new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x228833, wireframe: true });
             boss = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 5.0), bossMat);
-            boss.position.set(0, 1.2, -120); 
+            // Spawned closer and twice the size (Z pulled closer to player from -120 to -60, base scale doubled)
+            boss.position.set(0, 1.2, -60); 
             scene.add(boss);
         }
 
@@ -423,7 +426,7 @@
                     for(let i = 0; i < streamNodeCount; i++) {
                         streamPos[i*3+2] += speed;
                         if (streamPos[i*3+2] > 10) {
-                            streamPos[i*3+2] = -200;
+                            streamPos[i*3+2] = -150;
                         }
                         streamPos[i*3] = Math.sin(streamWaveOffset + (i * 0.2)) * 1.8;
                         streamPos[i*3+1] = Math.cos(streamWaveOffset * 0.8 + (i * 0.15)) * 0.7;
@@ -446,9 +449,9 @@
                         speed = THREE.MathUtils.lerp(1.5, 0.05, 1 - (bossTransitionTimer / 120));
                     } else {
                         speed = 0.02;
-                        if (boss && boss.position.z < -35) {
+                        if (boss && boss.position.z < -20) {
                             boss.position.z += 0.5;
-                            const scaleProgress = THREE.MathUtils.lerp(1.0, 4.5, (-35 - boss.position.z) / (-35 - (-120)));
+                            const scaleProgress = THREE.MathUtils.lerp(2.0, 9.0, (-20 - boss.position.z) / (-20 - (-60))); // Doubled scale factor
                             boss.scale.set(scaleProgress, scaleProgress, scaleProgress);
                         }
                         borgLaserTimer++;
