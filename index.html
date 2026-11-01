@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Enterprise's Borg Encounter</title>
-    <!-- Embedded Data-URI Favicon for Address Bar -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛸</text></svg>">
+    <!-- Custom Enterprise Starship Icon in Browser Navigation Bar -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><path d=%22M50 10 C30 25 15 45 25 65 C30 75 45 85 50 90 C55 85 70 75 75 65 C85 45 70 25 50 10 Z%22 fill=%22%2300aaff%22 stroke=%22%23ffffff%22 stroke-width=%223%22/><circle cx=%2250%22 cy=%2235%22 r=%2212%22 fill=%22%23ffffff%22/></svg>">
     <!-- Tailwind CSS for Modern HUD -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <!-- Three.js Library -->
@@ -13,7 +13,7 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Orbitron', sans-serif; overflow: hidden; background: #000; margin: 0; user-select: none; touch-action: none; -webkit-touch-callout: none; }
+        body { font-family: 'Orbitron', sans-serif; overflow: hidden; background: #000; margin: 0; user-select: none; touch-action: none; -webkit-touch-callout: none; width: 100vw; height: 100vh; height: 100dvh; }
         .hud-glass { background: rgba(10, 20, 40, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(0, 170, 255, 0.4); box-shadow: 0 0 20px rgba(0, 170, 255, 0.25); }
     </style>
 </head>
@@ -23,61 +23,61 @@
     <div id="canvas-container" class="absolute inset-0 z-0 overflow-hidden"></div>
 
     <!-- HUD Overlay -->
-    <div class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-2 sm:p-4 max-w-full overflow-hidden box-border">
+    <div class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-3 sm:p-5 max-w-full overflow-hidden box-border">
         <!-- Top Bar -->
-        <div class="flex justify-between items-center w-full max-w-md mx-auto gap-1.5">
+        <div class="flex justify-between items-center w-full max-w-4xl mx-auto gap-2">
             <!-- Shields & Score -->
-            <div class="hud-glass px-2 py-1.5 rounded-xl flex items-center space-x-2 text-cyan-400">
+            <div class="hud-glass px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl flex items-center space-x-2 sm:space-x-4 text-cyan-400">
                 <div>
-                    <p class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest">SHIELDS</p>
-                    <div class="w-14 sm:w-20 bg-slate-800 h-2 rounded-full overflow-hidden mt-0.5 border border-cyan-500/40">
+                    <p class="text-[8px] sm:text-[10px] text-cyan-300/75 tracking-widest">SHIELDS</p>
+                    <div class="w-16 sm:w-24 bg-slate-800 h-2 rounded-full overflow-hidden mt-1 border border-cyan-500/40">
                         <div id="shield-bar" class="bg-cyan-400 h-full w-full transition-all duration-300 shadow-[0_0_10px_#00aaff]"></div>
                     </div>
                 </div>
                 <div>
-                    <p class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest">TORP</p>
-                    <p id="torpedo-val" class="text-xs sm:text-sm font-black text-red-400">0</p>
+                    <p class="text-[8px] sm:text-[10px] text-cyan-300/75 tracking-widest">TORP</p>
+                    <p id="torpedo-val" class="text-sm sm:text-base font-black text-red-400">0</p>
                 </div>
                 <div>
-                    <p class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest">SCORE</p>
-                    <p id="score-val" class="text-xs sm:text-sm font-black text-white">000000</p>
+                    <p class="text-[8px] sm:text-[10px] text-cyan-300/75 tracking-widest">SCORE</p>
+                    <p id="score-val" class="text-sm sm:text-base font-black text-white">000000</p>
                 </div>
             </div>
 
             <!-- Mission Progress / Sector Objective -->
-            <div class="hud-glass px-2 py-1.5 rounded-xl text-center text-cyan-400 flex-1 max-w-[120px] mx-1">
-                <p id="objective-title" class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest truncate">MISSION</p>
-                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-0.5 border border-cyan-500/40">
+            <div class="hud-glass px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-center text-cyan-400 flex-1 max-w-[150px] sm:max-w-xs mx-1">
+                <p id="objective-title" class="text-[8px] sm:text-[10px] text-cyan-300/75 tracking-widest truncate">MISSION PROGRESS</p>
+                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-1 border border-cyan-500/40">
                     <div id="mission-bar" class="bg-yellow-400 h-full w-0 transition-all duration-300 shadow-[0_0_10px_#ffaa00]"></div>
                 </div>
             </div>
 
             <!-- Warp Status -->
-            <div class="hud-glass px-2 py-1.5 rounded-xl text-center text-cyan-400">
-                <p id="warp-title" class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest">WARP</p>
-                <p id="warp-val" class="text-xs sm:text-sm font-black text-yellow-400">ENGAGED</p>
+            <div class="hud-glass px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-center text-cyan-400">
+                <p id="warp-title" class="text-[8px] sm:text-[10px] text-cyan-300/75 tracking-widest">WARP</p>
+                <p id="warp-val" class="text-sm sm:text-base font-black text-yellow-400">ENGAGED</p>
             </div>
         </div>
 
         <!-- Boss Health Bar -->
         <div id="boss-hud" class="w-full max-w-sm mx-auto hidden pointer-events-auto text-center px-4">
-            <p class="text-[8px] sm:text-[10px] text-red-400 font-bold tracking-widest mb-1 shadow-[0_0_5px_rgba(255,0,0,0.8)]">WARNING: OUT OF WARP - BORG CUBE APPROACHING</p>
-            <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-red-500/60 shadow-[0_0_15px_rgba(255,0,0,0.5)]">
+            <p class="text-[9px] sm:text-xs text-red-400 font-bold tracking-widest mb-1 shadow-[0_0_5px_rgba(255,0,0,0.8)]">WARNING: OUT OF WARP - BORG CUBE APPROACHING</p>
+            <div class="w-full bg-slate-900 h-2 sm:h-2.5 rounded-full overflow-hidden border border-red-500/60 shadow-[0_0_15px_rgba(255,0,0,0.5)]">
                 <div id="boss-health-bar" class="bg-red-600 h-full w-full transition-all duration-150"></div>
             </div>
         </div>
 
-        <!-- Bottom Action Controls & Notifications -->
-        <div class="flex flex-col items-center pb-1 pointer-events-auto gap-1.5">
-            <div class="flex justify-center items-center gap-2">
-                <button id="fire-btn" class="px-4 py-2 bg-cyan-600/80 hover:bg-cyan-500 text-white font-black text-xs rounded-xl tracking-widest border border-cyan-400/50 shadow-[0_0_15px_rgba(0,170,255,0.4)] cursor-pointer active:scale-95 transition-all">
+        <!-- Bottom Action Controls & Notifications (Safely positioned above mobile navigation bars) -->
+        <div class="flex flex-col items-center pb-12 sm:pb-6 pointer-events-auto gap-2">
+            <div class="flex justify-center items-center gap-3">
+                <button id="fire-btn" class="px-5 py-2.5 bg-cyan-600/80 hover:bg-cyan-500 text-white font-black text-xs rounded-xl tracking-widest border border-cyan-400/50 shadow-[0_0_15px_rgba(0,170,255,0.4)] cursor-pointer active:scale-95 transition-all">
                     FIRE PHASERS
                 </button>
-                <button id="torpedo-btn" class="hidden px-4 py-2 bg-red-600/90 hover:bg-red-500 text-white font-black text-xs rounded-xl tracking-widest border border-red-400/50 shadow-[0_0_15px_rgba(255,0,0,0.5)] cursor-pointer active:scale-95 transition-all">
+                <button id="torpedo-btn" class="hidden px-5 py-2.5 bg-red-600/90 hover:bg-red-500 text-white font-black text-xs rounded-xl tracking-widest border border-red-400/50 shadow-[0_0_15px_rgba(255,0,0,0.5)] cursor-pointer active:scale-95 transition-all">
                     FIRE TORPEDO
                 </button>
             </div>
-            <p class="text-cyan-400/60 text-[7px] sm:text-[9px] tracking-widest text-center">TWO-FINGER TOUCH: STEER WITH ONE, FIRE WITH THE OTHER</p>
+            <p class="text-cyan-400/60 text-[8px] sm:text-[10px] tracking-widest text-center">TWO-FINGER TOUCH: STEER WITH ONE FINGER, FIRE WITH THE OTHER</p>
         </div>
     </div>
 
@@ -85,7 +85,7 @@
     <div id="menu-screen" class="absolute inset-0 z-25 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 pointer-events-auto">
         <div class="hud-glass p-6 sm:p-8 rounded-2xl max-w-md w-full border border-cyan-500/50">
             <h1 id="menu-title" class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2 tracking-wider">ENTERPRISE'S BORG ENCOUNTER</h1>
-            <p id="menu-desc" class="text-cyan-200/70 text-xs sm:text-sm mb-6">Mobile Cruiser Mode: Navigate warp, shoot meteors, follow the warp shield stream, and defeat the Borg.</p>
+            <p id="menu-desc" class="text-cyan-200/70 text-xs sm:text-sm mb-6">Mobile Cruiser Mode: Navigate warp, shoot meteors, follow the shield stream, and defeat the Borg.</p>
             
             <div id="final-score-container" class="hidden mb-6">
                 <p class="text-xs text-cyan-300/70">MISSION REPORT - FINAL SCORE</p>
@@ -126,7 +126,8 @@
         camera.lookAt(0, 0, -5);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-        renderer.setSize(window.innerWidth, window.innerHeight); renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setSize(window.innerWidth, window.innerHeight); 
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
         const ambientLight = new THREE.AmbientLight(0xffffff, 1.2); scene.add(ambientLight);
@@ -167,7 +168,7 @@
         let borgTexture = null;
         loadTransparentTexture('borg_cube.png', (tex) => { borgTexture = tex; });
 
-        // --- STAR STREAKS SYSTEM (Strictly inside mobile screen) ---
+        // --- STAR STREAKS SYSTEM ---
         const starCount = 1000;
         const starGeo = new THREE.BufferGeometry();
         const starPositions = new Float32Array(starCount * 6);
@@ -192,7 +193,7 @@
         const starField = new THREE.LineSegments(starGeo, starMat);
         scene.add(starField);
 
-        // --- SINGLE THIN WARP SHIELD STREAM WITH PULSES ---
+        // --- SINGLE THIN WARP SHIELD STREAM ---
         const streamNodeCount = 50;
         const streamPositions = new Float32Array(streamNodeCount * 3);
         for(let i = 0; i < streamNodeCount; i++) {
@@ -214,7 +215,7 @@
         let activeTouchId = null, touchStartX = 0, touchStartY = 0, shipStartX = 0, shipStartY = 0;
         let streamWaveOffset = 0;
 
-        // --- MOBILE TOUCH & MOUSE STEERING (Strictly within screen boundaries) ---
+        // --- UNIVERSAL TOUCH & MOUSE STEERING ---
         window.addEventListener('pointerdown', (e) => {
             if (!gameActive || e.target.tagName === 'BUTTON') return;
             if (activeTouchId === null) {
@@ -278,7 +279,6 @@
             borgLasers.push(bLaser);
         }
 
-        // Spawn meteors to shoot and dodge during warp
         function spawnMeteor() {
             if (!gameActive || bossActive) return;
             const meteorMat = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.9, metalness: 0.1, flatShading: true });
@@ -342,7 +342,6 @@
                 playerGroup.position.y += (targetY - playerGroup.position.y) * 0.1;
                 playerGroup.rotation.z = (playerGroup.position.x - targetX) * -0.05;
 
-                // Ship Angle Blending Logic
                 if (centerTexture && topTexture && midTopTexture && midBottomTexture && bottomTexture) {
                     const y = playerGroup.position.y; let texA = centerTexture, texB = centerTexture, mix = 0, targetTilt = 0;
                     if (y <= -1.4) { texA = topTexture; mix = 0; targetTilt = -0.3; } 
@@ -377,7 +376,6 @@
                         if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 100, ry = (Math.random() - 0.5) * 90, rz = -400; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
                     }
 
-                    // Animate Single Thin Shield Stream with moving warp pulses
                     streamWaveOffset += 0.02;
                     const streamPos = shieldStream.geometry.attributes.position.array;
                     let closeToStream = false;
@@ -469,7 +467,6 @@
                 for (let i = photonProjectiles.length - 1; i >= 0; i--) { photonProjectiles[i].position.z -= 2.0; if (photonProjectiles[i].position.z < -100) { scene.remove(photonProjectiles[i]); photonProjectiles.splice(i, 1); } }
 
                 if (!bossActive) {
-                    // Update and check meteors
                     for (let i = meteors.length - 1; i >= 0; i--) {
                         const m = meteors[i];
                         m.position.z += speed + 0.05;
@@ -498,7 +495,6 @@
                         if (m.position.z > 10) { scene.remove(m); meteors.splice(i, 1); }
                     }
 
-                    // Update and check torpedo pickups
                     for (let i = torpedoPickups.length - 1; i >= 0; i--) {
                         const tp = torpedoPickups[i];
                         tp.position.z += speed + 0.05;
@@ -536,7 +532,7 @@
             document.getElementById('menu-screen').classList.add('hidden'); 
             document.getElementById('final-score-container').classList.add('hidden'); 
             meteors.forEach(m => scene.remove(m)); meteors = [];
-            torpedoPickups.forEach(tp => scene.remove(tp)); torpedoPickups = []; 
+            torpedoPickups.forEach(tp => scene.remove(tp)); torpedoPickups.forEach = []; 
             lasers.forEach(l => scene.remove(l)); lasers = []; 
             photonProjectiles.forEach(pp => scene.remove(pp)); photonProjectiles = [];
             gameActive = true; 
@@ -544,7 +540,15 @@
         function endGame() { gameActive = false; document.getElementById('final-score').innerText = score; document.getElementById('final-score-container').classList.add('hidden'); document.getElementById('start-btn').innerText = 'RE-ENGAGE WARP DRIVE'; document.getElementById('menu-screen').classList.remove('hidden'); }
         document.getElementById('start-btn').addEventListener('click', startGame);
         document.getElementById('start-btn').addEventListener('touchend', (e) => { e.preventDefault(); startGame(); });
-        window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+        
+        // Universal Auto-Resize for any screen size or orientation change
+        window.addEventListener('resize', () => { 
+            camera.aspect = window.innerWidth / window.innerHeight; 
+            camera.updateProjectionMatrix(); 
+            renderer.setSize(window.innerWidth, window.innerHeight); 
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        });
+
         animate();
     </script>
 </body>
