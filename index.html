@@ -352,9 +352,9 @@
             pointStarField.visible = true;
 
             const bossMat = borgTexture ? new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x228833, wireframe: true });
-            boss = new THREE.Mesh(new THREE.PlaneGeometry(8.5, 8.5), bossMat);
-            // Spawn further out so it can visibly move closer while firing
-            boss.position.set(0, 1.2, -90); 
+            // Start smaller at a distance (-110) so it scales up to twice size as it closes in (-45)
+            boss = new THREE.Mesh(new THREE.PlaneGeometry(6.0, 6.0), bossMat);
+            boss.position.set(0, 1.2, -110); 
             scene.add(boss);
         }
 
@@ -447,9 +447,11 @@
                         speed = THREE.MathUtils.lerp(1.5, 0.05, 1 - (bossTransitionTimer / 120));
                     } else {
                         speed = 0.02;
-                        // Move Borg Cube closer to Enterprise while firing
+                        // Move Borg Cube closer and scale it up to twice its start size
                         if (boss && boss.position.z < -45) {
-                            boss.position.z += 0.15;
+                            boss.position.z += 0.5;
+                            const scaleProgress = THREE.MathUtils.lerp(1.0, 2.0, (-45 - boss.position.z) / (-45 - (-110)));
+                            boss.scale.set(scaleProgress, scaleProgress, scaleProgress);
                         }
                         borgLaserTimer++;
                         if (borgLaserTimer % 75 === 0) { 
@@ -484,7 +486,7 @@
 
                 if (bossActive && boss && bossTransitionTimer <= 0) {
                     for (let j = lasers.length - 1; j >= 0; j--) {
-                        if (boss.position.distanceTo(lasers[j].position) < 6.0) { 
+                        if (boss.position.distanceTo(lasers[j].position) < (6.0 * boss.scale.x)) { 
                             playSound('explosion'); 
                             bossHealth -= 2; 
                             const healthPct = Math.max(0, (bossHealth / maxBossHealth) * 100);
@@ -496,7 +498,7 @@
                         }
                     }
                     for (let j = photonProjectiles.length - 1; j >= 0; j--) {
-                        if (boss.position.distanceTo(photonProjectiles[j].position) < 6.5) { 
+                        if (boss.position.distanceTo(photonProjectiles[j].position) < (6.5 * boss.scale.x)) { 
                             playSound('explosion'); 
                             bossHealth -= 35; 
                             const healthPct = Math.max(0, (bossHealth / maxBossHealth) * 100);
@@ -613,7 +615,7 @@
         function endGame() { 
             gameActive = false; 
             document.getElementById('final-score').innerText = score; 
-            document.getElementById('final-score-container').classList.add('hidden'); 
+            document.getElementById('final-score-container').classList.remove('hidden'); 
             document.getElementById('start-btn').innerText = 'RE-ENGAGE WARP DRIVE'; 
             document.getElementById('menu-screen').classList.remove('hidden'); 
         }
