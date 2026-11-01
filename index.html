@@ -17,82 +17,82 @@
         .hud-glass { background: rgba(10, 20, 40, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(0, 170, 255, 0.4); box-shadow: 0 0 20px rgba(0, 170, 255, 0.25); }
     </style>
 </head>
-<body class="relative w-screen h-screen">
+<body class="relative w-screen h-screen overflow-hidden">
 
     <!-- Three.js Canvas Container -->
-    <div id="canvas-container" class="absolute inset-0 z-0"></div>
+    <div id="canvas-container" class="absolute inset-0 z-0 overflow-hidden"></div>
 
     <!-- HUD Overlay -->
-    <div class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-3 sm:p-6">
+    <div class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-3 sm:p-5 max-w-full overflow-hidden box-border">
         <!-- Top Bar -->
-        <div class="flex justify-between items-center w-full max-w-5xl mx-auto gap-2">
+        <div class="flex justify-between items-center w-full max-w-4xl mx-auto gap-2">
             <!-- Shields & Score -->
-            <div class="hud-glass px-3 py-2 sm:px-5 sm:py-3 rounded-xl flex items-center space-x-3 sm:space-x-5 text-cyan-400">
+            <div class="hud-glass px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl flex items-center space-x-2 sm:space-x-4 text-cyan-400">
                 <div>
-                    <p class="text-[9px] sm:text-xs text-cyan-300/75 tracking-widest">SHIELDS</p>
-                    <div class="w-20 sm:w-28 bg-slate-800 h-2 sm:h-2.5 rounded-full overflow-hidden mt-1 border border-cyan-500/40">
+                    <p class="text-[8px] sm:text-[10px] text-cyan-300/75 tracking-widest">SHIELDS</p>
+                    <div class="w-16 sm:w-24 bg-slate-800 h-2 rounded-full overflow-hidden mt-1 border border-cyan-500/40">
                         <div id="shield-bar" class="bg-cyan-400 h-full w-full transition-all duration-300 shadow-[0_0_10px_#00aaff]"></div>
                     </div>
                 </div>
                 <div>
-                    <p class="text-[9px] sm:text-xs text-cyan-300/75 tracking-widest">TORPEDOES</p>
-                    <p id="torpedo-val" class="text-base sm:text-xl font-black text-red-400">0</p>
+                    <p class="text-[8px] sm:text-[10px] text-cyan-300/75 tracking-widest">TORP</p>
+                    <p id="torpedo-val" class="text-sm sm:text-base font-black text-red-400">0</p>
                 </div>
                 <div>
-                    <p class="text-[9px] sm:text-xs text-cyan-300/75 tracking-widest">SCORE</p>
-                    <p id="score-val" class="text-base sm:text-xl font-black text-white">000000</p>
+                    <p class="text-[8px] sm:text-[10px] text-cyan-300/75 tracking-widest">SCORE</p>
+                    <p id="score-val" class="text-sm sm:text-base font-black text-white">000000</p>
                 </div>
             </div>
 
             <!-- Mission Progress / Sector Objective -->
-            <div class="hud-glass px-3 py-2 sm:px-5 sm:py-3 rounded-xl text-center text-cyan-400 flex-1 max-w-[180px] sm:max-w-xs mx-2">
-                <p id="objective-title" class="text-[9px] sm:text-xs text-cyan-300/75 tracking-widest truncate">MISSION PROGRESS</p>
+            <div class="hud-glass px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-center text-cyan-400 flex-1 max-w-[150px] sm:max-w-xs mx-1">
+                <p id="objective-title" class="text-[8px] sm:text-[10px] text-cyan-300/75 tracking-widest truncate">MISSION PROGRESS</p>
                 <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-1 border border-cyan-500/40">
                     <div id="mission-bar" class="bg-yellow-400 h-full w-0 transition-all duration-300 shadow-[0_0_10px_#ffaa00]"></div>
                 </div>
             </div>
 
             <!-- Warp Status -->
-            <div class="hud-glass px-3 py-2 sm:px-5 sm:py-3 rounded-xl text-center text-cyan-400">
-                <p id="warp-title" class="text-[9px] sm:text-xs text-cyan-300/75 tracking-widest">WARP</p>
-                <p id="warp-val" class="text-base sm:text-xl font-black text-yellow-400">ENGAGED</p>
+            <div class="hud-glass px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-center text-cyan-400">
+                <p id="warp-title" class="text-[8px] sm:text-[10px] text-cyan-300/75 tracking-widest">WARP</p>
+                <p id="warp-val" class="text-sm sm:text-base font-black text-yellow-400">ENGAGED</p>
             </div>
         </div>
 
         <!-- Boss Health Bar -->
         <div id="boss-hud" class="w-full max-w-sm mx-auto hidden pointer-events-auto text-center px-4">
-            <p class="text-[10px] sm:text-xs text-red-400 font-bold tracking-widest mb-1 shadow-[0_0_5px_rgba(255,0,0,0.8)]">WARNING: OUT OF WARP - BORG CUBE APPROACHING</p>
-            <div class="w-full bg-slate-900 h-2.5 sm:h-3 rounded-full overflow-hidden border border-red-500/60 shadow-[0_0_15px_rgba(255,0,0,0.5)]">
+            <p class="text-[9px] sm:text-xs text-red-400 font-bold tracking-widest mb-1 shadow-[0_0_5px_rgba(255,0,0,0.8)]">WARNING: OUT OF WARP - BORG CUBE APPROACHING</p>
+            <div class="w-full bg-slate-900 h-2 sm:h-2.5 rounded-full overflow-hidden border border-red-500/60 shadow-[0_0_15px_rgba(255,0,0,0.5)]">
                 <div id="boss-health-bar" class="bg-red-600 h-full w-full transition-all duration-150"></div>
             </div>
         </div>
 
         <!-- Bottom Action Controls & Notifications -->
-        <div class="flex flex-col items-center pb-2 pointer-events-auto gap-3">
-            <div class="flex justify-center items-center gap-4">
-                <button id="fire-btn" class="px-6 py-3 bg-cyan-600/80 hover:bg-cyan-500 text-white font-black text-xs sm:text-sm rounded-xl tracking-widest border border-cyan-400/50 shadow-[0_0_15px_rgba(0,170,255,0.4)] cursor-pointer active:scale-95 transition-all">
+        <div class="flex flex-col items-center pb-2 pointer-events-auto gap-2">
+            <div class="flex justify-center items-center gap-3">
+                <button id="fire-btn" class="px-5 py-2.5 bg-cyan-600/80 hover:bg-cyan-500 text-white font-black text-xs rounded-xl tracking-widest border border-cyan-400/50 shadow-[0_0_15px_rgba(0,170,255,0.4)] cursor-pointer active:scale-95 transition-all">
                     FIRE PHASERS
                 </button>
-                <button id="torpedo-btn" class="hidden px-6 py-3 bg-red-600/90 hover:bg-red-500 text-white font-black text-xs sm:text-sm rounded-xl tracking-widest border border-red-400/50 shadow-[0_0_15px_rgba(255,0,0,0.5)] cursor-pointer active:scale-95 transition-all">
+                <button id="torpedo-btn" class="hidden px-5 py-2.5 bg-red-600/90 hover:bg-red-500 text-white font-black text-xs rounded-xl tracking-widest border border-red-400/50 shadow-[0_0_15px_rgba(255,0,0,0.5)] cursor-pointer active:scale-95 transition-all">
                     FIRE TORPEDO
                 </button>
             </div>
-            <p class="text-cyan-400/60 text-[9px] sm:text-xs tracking-widest text-center">TWO-FINGER TOUCH: DRAG SHIP WITH ONE FINGER, FIRE WITH THE OTHER</p>
+            <p class="text-cyan-400/60 text-[8px] sm:text-[10px] tracking-widest text-center">TWO-FINGER TOUCH: STEER WITH ONE FINGER, FIRE WITH THE OTHER</p>
         </div>
     </div>
 
     <!-- Start / Game Over Overlay Modal -->
     <div id="menu-screen" class="absolute inset-0 z-25 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 pointer-events-auto">
         <div class="hud-glass p-6 sm:p-8 rounded-2xl max-w-md w-full border border-cyan-500/50">
-            <h1 id="menu-title" class="text-2xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2 tracking-wider">ENTERPRISE'S BORG ENCOUNTER</h1>
-            <p id="menu-desc" class="text-cyan-200/70 text-xs sm:text-sm mb-6">Relaxed cruiser mode: Navigate warp, stay on the shield stream, collect photon torpedoes, and defeat the Borg threat.</p>
+            <h1 id="menu-title" class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2 tracking-wider">ENTERPRISE'S BORG ENCOUNTER</h1>
+            <p id="menu-desc" class="text-cyan-200/70 text-xs sm:text-sm mb-6">Relaxed cruiser mode: Navigate warp, dodge meteors, follow the shield stream, and defeat the Borg.</p>
             
             <div id="final-score-container" class="hidden mb-6">
                 <p class="text-xs text-cyan-300/70">MISSION REPORT - FINAL SCORE</p>
-                <p id="final-score" class="text-3xl font-bold text-yellow-400">0</p>
+                <p id="final-score" class="text-2xl font-bold text-yellow-400">0</p>
             </div>
 
-            <button id="start-btn" class="w-full py-3.5 sm:py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black rounded-xl tracking-widest shadow-[0_0_25px_rgba(0,170,255,0.6)] transition-all cursor-pointer">
+            <button id="start-btn" class="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black rounded-xl tracking-widest shadow-[0_0_25px_rgba(0,170,255,0.6)] transition-all cursor-pointer">
                 ENGAGE WARP DRIVE
             </button>
         </div>
@@ -152,7 +152,7 @@
             img.onerror = () => { console.warn("Could not load: " + url); callback(null); }; img.src = url;
         }
 
-        const shipGeo = new THREE.PlaneGeometry(3.2, 1.4);
+        const shipGeo = new THREE.PlaneGeometry(3.0, 1.3);
         material1 = new THREE.MeshBasicMaterial({ map: defaultTexture, transparent: true, opacity: 1.0, side: THREE.DoubleSide });
         material2 = new THREE.MeshBasicMaterial({ map: defaultTexture, transparent: true, opacity: 0.0, side: THREE.DoubleSide });
         playerGroup.add(new THREE.Mesh(shipGeo, material1));
@@ -175,8 +175,8 @@
         const colors = [ new THREE.Color(0xffffff), new THREE.Color(0x99ffff), new THREE.Color(0xffffcc) ];
 
         for(let i = 0; i < starCount * 6; i += 6) {
-            const x = (Math.random() - 0.5) * 160;
-            const y = (Math.random() - 0.5) * 140;
+            const x = (Math.random() - 0.5) * 140;
+            const y = (Math.random() - 0.5) * 120;
             const z = (Math.random() - 0.5) * 400 - 50;
             starPositions[i] = x; starPositions[i+1] = y; starPositions[i+2] = z;
             starPositions[i+3] = x; starPositions[i+4] = y; starPositions[i+5] = z - 2;
@@ -192,29 +192,29 @@
         const starField = new THREE.LineSegments(starGeo, starMat);
         scene.add(starField);
 
-        // --- SINGLE SHIELD RECHARGE STREAM ---
-        const streamNodeCount = 60;
-        const streamGeo = new THREE.BufferGeometry();
+        // --- SINGLE NON-LOOPING SHIELD RECHARGE STREAM (Using BufferGeometry explicitly to avoid loop-back) ---
+        const streamNodeCount = 40;
         const streamPositions = new Float32Array(streamNodeCount * 3);
         for(let i = 0; i < streamNodeCount; i++) {
-            streamPositions[i*3] = Math.sin(i * 0.2) * 3.5;
-            streamPositions[i*3+1] = Math.cos(i * 0.15) * 1.5;
-            streamPositions[i*3+2] = -i * 4;
+            streamPositions[i*3] = Math.sin(i * 0.25) * 3.0;
+            streamPositions[i*3+1] = Math.cos(i * 0.2) * 1.2;
+            streamPositions[i*3+2] = -i * 5;
         }
-        streamGeo.setAttribute('position', new THREE.BufferAttribute(streamPositions, 3));
-        const streamMat = new THREE.LineBasicMaterial({ color: 0x00ffff, linewidth: 3, transparent: true, opacity: 0.85 });
-        const shieldStream = new THREE.Line(streamGeo, streamMat);
+        const shieldStreamGeo = new THREE.BufferGeometry();
+        shieldStreamGeo.setAttribute('position', new THREE.BufferAttribute(streamPositions, 3));
+        const streamMat = new THREE.LineBasicMaterial({ color: 0x00ffff, linewidth: 3, transparent: true, opacity: 0.9 });
+        const shieldStream = new THREE.Line(shieldStreamGeo, streamMat);
         scene.add(shieldStream);
 
         // --- GAME STATE ---
         let gameActive = false, score = 0, shields = 100, photonTorpedoes = 0, warpFactor = 1, missionProgress = 0, sectorCount = 1;
         let bossActive = false, boss = null, bossHealth = 300, maxBossHealth = 300, borgLaserTimer = 0;
-        let lasers = [], borgLasers = [], photonProjectiles = [], torpedoPickups = [];
+        let lasers = [], borgLasers = [], photonProjectiles = [], meteors = [], torpedoPickups = [];
         let targetX = 0, targetY = 0, keys = {}, lastShotTime = 0;
         let activeTouchId = null, touchStartX = 0, touchStartY = 0, shipStartX = 0, shipStartY = 0;
         let streamWaveOffset = 0;
 
-        // --- TOUCH & MOUSE STEERING (Safe within screen boundaries) ---
+        // --- TOUCH & MOUSE STEERING (Strictly within screen boundaries) ---
         window.addEventListener('pointerdown', (e) => {
             if (!gameActive || e.target.tagName === 'BUTTON') return;
             if (activeTouchId === null) {
@@ -228,8 +228,8 @@
             if (!gameActive || e.pointerId !== activeTouchId) return;
             const deltaX = (e.clientX - touchStartX) * 0.022;
             const deltaY = (e.clientY - touchStartY) * 0.022;
-            targetX = THREE.MathUtils.clamp(shipStartX + deltaX, -4.5, 4.5);
-            targetY = THREE.MathUtils.clamp(shipStartY - deltaY, -2.5, 2.5);
+            targetX = THREE.MathUtils.clamp(shipStartX + deltaX, -3.8, 3.8);
+            targetY = THREE.MathUtils.clamp(shipStartY - deltaY, -2.0, 2.0);
         });
 
         window.addEventListener('pointerup', (e) => { if (e.pointerId === activeTouchId) activeTouchId = null; });
@@ -244,7 +244,7 @@
             lastShotTime = now; playSound('laser');
             const laserGeo = new THREE.CylinderGeometry(0.04, 0.04, 1.0, 8); laserGeo.rotateX(Math.PI / 2);
             const laserMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
-            [-0.9, 0.9].forEach(offsetX => { const laser = new THREE.Mesh(laserGeo, laserMat); laser.position.set(playerGroup.position.x + offsetX, playerGroup.position.y, playerGroup.position.z - 1); scene.add(laser); lasers.push(laser); });
+            [-0.8, 0.8].forEach(offsetX => { const laser = new THREE.Mesh(laserGeo, laserMat); laser.position.set(playerGroup.position.x + offsetX, playerGroup.position.y, playerGroup.position.z - 1); scene.add(laser); lasers.push(laser); });
         }
 
         function fireTorpedo() {
@@ -273,10 +273,22 @@
             laserGeo.rotateX(Math.PI / 2);
             const laserMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 }); 
             const bLaser = new THREE.Mesh(laserGeo, laserMat);
-            bLaser.position.set(boss.position.x + (Math.random() - 0.5) * 5, boss.position.y + (Math.random() - 0.5) * 5, boss.position.z);
+            bLaser.position.set(boss.position.x + (Math.random() - 0.5) * 4, boss.position.y + (Math.random() - 0.5) * 4, boss.position.z);
             scene.add(bLaser);
             borgLasers.push(bLaser);
         }
+
+        // Spawn textured 3D meteors to dodge and shoot during warp
+        function spawnMeteor() {
+            if (!gameActive || bossActive) return;
+            const meteorMat = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.9, metalness: 0.1, flatShading: true });
+            const meteor = new THREE.Mesh(new THREE.DodecahedronGeometry(0.9, 1), meteorMat);
+            meteor.position.set((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 5, -120);
+            meteor.userData = { rotSpeed: new THREE.Vector3((Math.random()-0.5)*0.04, (Math.random()-0.5)*0.04, 0) };
+            scene.add(meteor);
+            meteors.push(meteor);
+        }
+        setInterval(spawnMeteor, 1500);
 
         function spawnTorpedoPickup() {
             if (!gameActive || bossActive) return;
@@ -286,7 +298,7 @@
             scene.add(pickup);
             torpedoPickups.push(pickup);
         }
-        setInterval(spawnTorpedoPickup, 5000);
+        setInterval(spawnTorpedoPickup, 6000);
 
         function spawnBoss() {
             bossActive = true; missionProgress = 100; borgLaserTimer = 0;
@@ -297,8 +309,8 @@
             document.getElementById('warp-val').innerText = "DISENGAGED";
             document.getElementById('warp-val').classList.add('text-red-500');
 
-            torpedoPickups.forEach(tp => scene.remove(tp));
-            torpedoPickups = [];
+            meteors.forEach(m => scene.remove(m)); meteors = [];
+            torpedoPickups.forEach(tp => scene.remove(tp)); torpedoPickups = [];
             shieldStream.visible = false; 
 
             const bossMat = borgTexture ? new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x228833, wireframe: true });
@@ -333,21 +345,21 @@
                 // Ship Angle Blending Logic
                 if (centerTexture && topTexture && midTopTexture && midBottomTexture && bottomTexture) {
                     const y = playerGroup.position.y; let texA = centerTexture, texB = centerTexture, mix = 0, targetTilt = 0;
-                    if (y <= -2.0) { texA = topTexture; mix = 0; targetTilt = -0.35; } 
-                    else if (y > -2.0 && y <= -1.0) { texA = topTexture; texB = midTopTexture; mix = (y - (-2.0)) / (-1.0 - (-2.0)); targetTilt = THREE.MathUtils.lerp(-0.35, -0.15, mix); } 
-                    else if (y > -1.0 && y <= -0.3) { texA = midTopTexture; texB = centerTexture; mix = (y - (-1.0)) / (-0.3 - (-1.0)); targetTilt = THREE.MathUtils.lerp(-0.15, 0, mix); } 
-                    else if (y > -0.3 && y <= 1.2) { texA = centerTexture; texB = centerTexture; mix = 0; targetTilt = 0; } 
-                    else if (y > 1.2 && y <= 1.8) { texA = centerTexture; texB = midBottomTexture; mix = (y - 1.2) / (1.8 - 1.2); targetTilt = THREE.MathUtils.lerp(0, 0.15, mix); } 
-                    else if (y > 1.8 && y <= 2.4) { texA = midBottomTexture; texB = bottomTexture; mix = (y - 1.8) / (2.4 - 1.8); targetTilt = THREE.MathUtils.lerp(0.15, 0.3, mix); } 
+                    if (y <= -1.8) { texA = topTexture; mix = 0; targetTilt = -0.35; } 
+                    else if (y > -1.8 && y <= -0.9) { texA = topTexture; texB = midTopTexture; mix = (y - (-1.8)) / (-0.9 - (-1.8)); targetTilt = THREE.MathUtils.lerp(-0.35, -0.15, mix); } 
+                    else if (y > -0.9 && y <= -0.3) { texA = midTopTexture; texB = centerTexture; mix = (y - (-0.9)) / (-0.3 - (-0.9)); targetTilt = THREE.MathUtils.lerp(-0.15, 0, mix); } 
+                    else if (y > -0.3 && y <= 1.0) { texA = centerTexture; texB = centerTexture; mix = 0; targetTilt = 0; } 
+                    else if (y > 1.0 && y <= 1.6) { texA = centerTexture; texB = midBottomTexture; mix = (y - 1.0) / (1.6 - 1.0); targetTilt = THREE.MathUtils.lerp(0, 0.15, mix); } 
+                    else if (y > 1.6 && y <= 2.2) { texA = midBottomTexture; texB = bottomTexture; mix = (y - 1.6) / (2.2 - 1.6); targetTilt = THREE.MathUtils.lerp(0.15, 0.3, mix); } 
                     else { texA = bottomTexture; mix = 0; targetTilt = 0.3; }
                     material1.map = texA; material2.map = texB; material1.opacity = 1.0 - mix; material2.opacity = mix; material1.needsUpdate = true; material2.needsUpdate = true;
                     playerGroup.rotation.x += (targetTilt - playerGroup.rotation.x) * 0.15;
                 }
 
-                if (keys['ArrowLeft'] || keys['KeyA']) targetX = Math.max(targetX - 0.2, -4.5);
-                if (keys['ArrowRight'] || keys['KeyD']) targetX = Math.min(targetX + 0.2, 4.5);
-                if (keys['ArrowUp'] || keys['KeyW']) targetY = Math.min(targetY + 0.2, 2.5);
-                if (keys['ArrowDown'] || keys['KeyS']) targetY = Math.max(targetY - 0.2, -2.5);
+                if (keys['ArrowLeft'] || keys['KeyA']) targetX = Math.max(targetX - 0.2, -3.8);
+                if (keys['ArrowRight'] || keys['KeyD']) targetX = Math.min(targetX + 0.2, 3.8);
+                if (keys['ArrowUp'] || keys['KeyW']) targetY = Math.min(targetY + 0.2, 2.0);
+                if (keys['ArrowDown'] || keys['KeyS']) targetY = Math.max(targetY - 0.2, -2.0);
 
                 let speed = 0;
                 const positions = starGeo.attributes.position.array;
@@ -362,23 +374,23 @@
                     const streakLength = 1.0 + (warpFactor * 0.4); speed = 0.3 + (warpFactor * 0.2); 
                     for (let i = 0; i < positions.length; i += 6) {
                         positions[i+2] += speed; positions[i+5] = positions[i+2] - streakLength;
-                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 160, ry = (Math.random() - 0.5) * 140, rz = -400; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
+                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 140, ry = (Math.random() - 0.5) * 120, rz = -400; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
                     }
 
-                    // Animate and Move Single Smooth Shield Stream within screen boundaries
+                    // Animate Single Smooth Shield Stream (strictly within screen boundaries)
                     streamWaveOffset += 0.012;
                     const streamPos = shieldStream.geometry.attributes.position.array;
                     let closeToStream = false;
                     for(let i = 0; i < streamNodeCount; i++) {
                         streamPos[i*3+2] += speed;
                         if (streamPos[i*3+2] > 10) {
-                            streamPos[i*3+2] = -240;
+                            streamPos[i*3+2] = -200;
                         }
-                        streamPos[i*3] = Math.sin(streamWaveOffset + (i * 0.15)) * 3.2;
-                        streamPos[i*3+1] = Math.cos(streamWaveOffset * 0.8 + (i * 0.1)) * 1.2;
+                        streamPos[i*3] = Math.sin(streamWaveOffset + (i * 0.2)) * 2.5;
+                        streamPos[i*3+1] = Math.cos(streamWaveOffset * 0.8 + (i * 0.15)) * 1.0;
 
                         const nodeVector = new THREE.Vector3(streamPos[i*3], streamPos[i*3+1], streamPos[i*3+2]);
-                        if (nodeVector.distanceTo(playerGroup.position) < 2.2) { 
+                        if (nodeVector.distanceTo(playerGroup.position) < 2.0) { 
                             closeToStream = true;
                         }
                     }
@@ -410,7 +422,6 @@
                 document.getElementById('score-val').innerText = String(score).padStart(6, '0');
 
                 if (bossActive && boss) {
-                    // Check Phaser Hits
                     for (let j = lasers.length - 1; j >= 0; j--) {
                         if (boss.position.distanceTo(lasers[j].position) < 7.0) { 
                             playSound('explosion'); 
@@ -423,11 +434,10 @@
                             break; 
                         }
                     }
-                    // Check Photon Torpedo Hits
                     for (let j = photonProjectiles.length - 1; j >= 0; j--) {
                         if (boss.position.distanceTo(photonProjectiles[j].position) < 7.5) { 
                             playSound('explosion'); 
-                            bossHealth -= 35; // Heavy torpedo damage
+                            bossHealth -= 35; 
                             const healthPct = Math.max(0, (bossHealth / maxBossHealth) * 100);
                             document.getElementById('boss-health-bar').style.width = healthPct + '%'; 
                             scene.remove(photonProjectiles[j]); 
@@ -459,11 +469,41 @@
                 for (let i = photonProjectiles.length - 1; i >= 0; i--) { photonProjectiles[i].position.z -= 2.0; if (photonProjectiles[i].position.z < -100) { scene.remove(photonProjectiles[i]); photonProjectiles.splice(i, 1); } }
 
                 if (!bossActive) {
+                    // Update and check meteors
+                    for (let i = meteors.length - 1; i >= 0; i--) {
+                        const m = meteors[i];
+                        m.position.z += speed + 0.05;
+                        m.rotation.x += m.userData.rotSpeed.x;
+                        m.rotation.y += m.userData.rotSpeed.y;
+                        if (m.position.distanceTo(playerGroup.position) < 1.5) {
+                            playSound('explosion');
+                            shields -= 20;
+                            document.getElementById('shield-bar').style.width = shields + '%';
+                            scene.remove(m);
+                            meteors.splice(i, 1);
+                            if (shields <= 0) endGame();
+                            continue;
+                        }
+                        let destroyed = false;
+                        for (let j = lasers.length - 1; j >= 0; j--) {
+                            if (m.position.distanceTo(lasers[j].position) < 1.3) {
+                                playSound('explosion');
+                                score += 150;
+                                scene.remove(m); meteors.splice(i, 1);
+                                scene.remove(lasers[j]); lasers.splice(j, 1);
+                                destroyed = true; break;
+                            }
+                        }
+                        if (destroyed) continue;
+                        if (m.position.z > 10) { scene.remove(m); meteors.splice(i, 1); }
+                    }
+
+                    // Update and check torpedo pickups
                     for (let i = torpedoPickups.length - 1; i >= 0; i--) {
                         const tp = torpedoPickups[i];
                         tp.position.z += speed + 0.05;
                         tp.rotation.y += 0.03;
-                        if (tp.position.distanceTo(playerGroup.position) < 2.2) {
+                        if (tp.position.distanceTo(playerGroup.position) < 2.0) {
                             playSound('torpedo-pickup');
                             photonTorpedoes += 1;
                             document.getElementById('torpedo-val').innerText = photonTorpedoes;
@@ -495,6 +535,7 @@
             document.getElementById('boss-hud').classList.add('hidden'); 
             document.getElementById('menu-screen').classList.add('hidden'); 
             document.getElementById('final-score-container').classList.add('hidden'); 
+            meteors.forEach(m => scene.remove(m)); meteors = [];
             torpedoPickups.forEach(tp => scene.remove(tp)); torpedoPickups = []; 
             lasers.forEach(l => scene.remove(l)); lasers = []; 
             photonProjectiles.forEach(pp => scene.remove(pp)); photonProjectiles = [];
