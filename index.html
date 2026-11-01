@@ -52,7 +52,7 @@
                 </div>
             </div>
 
-            <!-- Mission Progress / Sector Objective (Moved Below Top Bar) -->
+            <!-- Mission Progress / Sector Objective -->
             <div class="hud-glass px-3 py-2 rounded-xl text-center text-cyan-400 mx-auto w-full max-w-md">
                 <p id="objective-title" class="text-[8px] sm:text-[10px] text-cyan-300/75 tracking-widest truncate">MISSION OBJECTIVE</p>
                 <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-1 border border-cyan-500/40">
@@ -113,7 +113,7 @@
             else if (type === 'torpedo') { osc.type = 'sine'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(80, now + 0.3); gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
             else if (type === 'borg-laser') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(80, now + 0.3); gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
             else if (type === 'explosion') { osc.type = 'square'; osc.frequency.setValueAtTime(120, now); osc.frequency.linearRampToValueAtTime(30, now + 0.4); gain.gain.setValueAtTime(0.25, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.4); osc.start(now); osc.stop(now + 0.4); }
-            else if (type === 'shield-charge') { osc.type = 'sine'; osc.frequency.setValueAtTime(520, now); osc.frequency.exponentialRampToValueAtTime(1046.5, now + 0.15); gain.gain.setValueAtTime(0.02, now); gain.gain.linearRampToValueAtTime(0.001, now + 0.15); osc.start(now); osc.stop(now + 0.15); } // Quieten noise to very quiet
+            else if (type === 'shield-charge') { osc.type = 'sine'; osc.frequency.setValueAtTime(520, now); osc.frequency.exponentialRampToValueAtTime(1046.5, now + 0.15); gain.gain.setValueAtTime(0.02, now); gain.gain.linearRampToValueAtTime(0.001, now + 0.15); osc.start(now); osc.stop(now + 0.15); }
             else if (type === 'torpedo-pickup') { osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(600, now + 0.2); gain.gain.setValueAtTime(0.25, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.2); osc.start(now); osc.stop(now + 0.2); }
             else if (type === 'victory') { osc.type = 'triangle'; osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(554.37, now + 0.2); osc.frequency.setValueAtTime(659.25, now + 0.4); gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.8); osc.start(now); osc.stop(now + 0.8); }
         }
@@ -170,8 +170,8 @@
         let borgTexture = null;
         loadTransparentTexture('borg_cube.png', (tex) => { borgTexture = tex; });
 
-        // --- STARFIELD SYSTEMS ---
-        const starCount = 1200;
+        // --- STARFIELD SYSTEMS (High Density) ---
+        const starCount = 4000;
         
         // 1. Warp Star Streaks Setup
         const starGeo = new THREE.BufferGeometry();
@@ -181,9 +181,9 @@
         const colors = [ new THREE.Color(0x00aaff), new THREE.Color(0x00ffff), new THREE.Color(0xffaa00), new THREE.Color(0xffffff) ];
 
         for(let i = 0; i < starCount * 6; i += 6) {
-            const x = (Math.random() - 0.5) * 120;
-            const y = (Math.random() - 0.5) * 110;
-            const z = (Math.random() - 0.5) * 400 - 50;
+            const x = (Math.random() - 0.5) * 160;
+            const y = (Math.random() - 0.5) * 140;
+            const z = (Math.random() - 0.5) * 450 - 50;
             
             starOriginalPositions[i] = x; starOriginalPositions[i+1] = y; starOriginalPositions[i+2] = z;
             starOriginalPositions[i+3] = x; starOriginalPositions[i+4] = y; starOriginalPositions[i+5] = z - 2;
@@ -198,7 +198,7 @@
 
         starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
         starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
-        const starMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9 });
+        const starMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.95 });
         const starField = new THREE.LineSegments(starGeo, starMat);
         scene.add(starField);
 
@@ -216,9 +216,9 @@
         const pointPositions = new Float32Array(starCount * 3);
         const pointColors = new Float32Array(starCount * 3);
         for(let i = 0; i < starCount * 3; i += 3) {
-            pointPositions[i] = (Math.random() - 0.5) * 160;
-            pointPositions[i+1] = (Math.random() - 0.5) * 140;
-            pointPositions[i+2] = (Math.random() - 0.5) * 300 - 40;
+            pointPositions[i] = (Math.random() - 0.5) * 180;
+            pointPositions[i+1] = (Math.random() - 0.5) * 160;
+            pointPositions[i+2] = (Math.random() - 0.5) * 350 - 40;
 
             const baseColor = colors[Math.floor(Math.random() * colors.length)];
             pointColors[i] = baseColor.r; pointColors[i+1] = baseColor.g; pointColors[i+2] = baseColor.b;
@@ -355,8 +355,9 @@
 
             const bossMat = borgTexture ? new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x228833, wireframe: true });
             boss = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 5.0), bossMat);
-            // Spawned closer and twice the size (Z pulled closer to player from -120 to -60, base scale doubled)
-            boss.position.set(0, 1.2, -60); 
+            // Spawn far away and small, will smoothly move in and scale up in animate loop
+            boss.position.set(0, 1.2, -120);
+            boss.scale.set(1.0, 1.0, 1.0);
             scene.add(boss);
         }
 
@@ -417,7 +418,7 @@
                     const streakLength = 1.0 + (warpFactor * 0.4); speed = 0.3 + (warpFactor * 0.2); 
                     for (let i = 0; i < positions.length; i += 6) {
                         positions[i+2] += speed; positions[i+5] = positions[i+2] - streakLength;
-                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 120, ry = (Math.random() - 0.5) * 110, rz = -400; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
+                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 160, ry = (Math.random() - 0.5) * 140, rz = -450; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
                     }
 
                     streamWaveOffset += 0.02;
@@ -449,10 +450,12 @@
                         speed = THREE.MathUtils.lerp(1.5, 0.05, 1 - (bossTransitionTimer / 120));
                     } else {
                         speed = 0.02;
-                        if (boss && boss.position.z < -20) {
-                            boss.position.z += 0.5;
-                            const scaleProgress = THREE.MathUtils.lerp(2.0, 9.0, (-20 - boss.position.z) / (-20 - (-60))); // Doubled scale factor
-                            boss.scale.set(scaleProgress, scaleProgress, scaleProgress);
+                        // Smoothly approach and scale up from small to large boss position
+                        if (boss && boss.position.z < -25) {
+                            boss.position.z += 0.7;
+                            const t = THREE.MathUtils.clamp((boss.position.z - (-120)) / (-25 - (-120)), 0, 1);
+                            const currentScale = THREE.MathUtils.lerp(1.0, 8.0, t);
+                            boss.scale.set(currentScale, currentScale, currentScale);
                         }
                         borgLaserTimer++;
                         if (borgLaserTimer % 75 === 0) { 
@@ -462,7 +465,7 @@
 
                     for (let i = 0; i < positions.length; i += 6) {
                         positions[i+2] += speed; positions[i+5] = positions[i+2] - (speed * 3);
-                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 120, ry = (Math.random() - 0.5) * 110, rz = -400; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - 2; }
+                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 160, ry = (Math.random() - 0.5) * 140, rz = -450; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - 2; }
                     }
                 } else if (jumpToWarpTimer > 0) {
                     jumpToWarpTimer--;
@@ -471,7 +474,7 @@
                     
                     for (let i = 0; i < positions.length; i += 6) {
                         positions[i+2] += speed; positions[i+5] = positions[i+2] - streakLength;
-                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 120, ry = (Math.random() - 0.5) * 110, rz = -400; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
+                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 160, ry = (Math.random() - 0.5) * 140, rz = -450; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
                     }
 
                     if (jumpToWarpTimer <= 0) {
