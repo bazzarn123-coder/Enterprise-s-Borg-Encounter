@@ -168,56 +168,35 @@
         let borgTexture = null;
         loadTransparentTexture('borg_cube.png', (tex) => { borgTexture = tex; });
 
-        // --- DUAL STARFIELD SYSTEM (Warp Streaks for Warp, Point Stars for Boss Battle) ---
+        // --- CLEAN STARFIELD SYSTEM (With Blue, Cyan & Yellow Star Streaks) ---
         const starCount = 1200;
-        
-        // 1. Warp Star Streaks Setup
-        const warpStarGeo = new THREE.BufferGeometry();
-        const warpPositions = new Float32Array(starCount * 6);
-        const warpOriginalPositions = new Float32Array(starCount * 6);
+        const starGeo = new THREE.BufferGeometry();
+        const starPositions = new Float32Array(starCount * 6);
+        const starOriginalPositions = new Float32Array(starCount * 6);
         const starColors = new Float32Array(starCount * 6);
-        const colors = [ new THREE.Color(0xffffff), new THREE.Color(0x99ffff), new THREE.Color(0xffffcc) ];
+        const colors = [ new THREE.Color(0x00aaff), new THREE.Color(0x00ffff), new THREE.Color(0xffaa00), new THREE.Color(0xffffff) ];
 
         for(let i = 0; i < starCount * 6; i += 6) {
-            const x = (Math.random() - 0.5) * 140;
-            const y = (Math.random() - 0.5) * 130;
+            const x = (Math.random() - 0.5) * 120;
+            const y = (Math.random() - 0.5) * 110;
             const z = (Math.random() - 0.5) * 400 - 50;
             
-            warpOriginalPositions[i] = x; warpOriginalPositions[i+1] = y; warpOriginalPositions[i+2] = z;
-            warpOriginalPositions[i+3] = x; warpOriginalPositions[i+4] = y; warpOriginalPositions[i+5] = z - 2;
+            starOriginalPositions[i] = x; starOriginalPositions[i+1] = y; starOriginalPositions[i+2] = z;
+            starOriginalPositions[i+3] = x; starOriginalPositions[i+4] = y; starOriginalPositions[i+5] = z - 2;
 
-            warpPositions[i] = x; warpPositions[i+1] = y; warpPositions[i+2] = z;
-            warpPositions[i+3] = x; warpPositions[i+4] = y; warpPositions[i+5] = z - 2;
+            starPositions[i] = x; starPositions[i+1] = y; starPositions[i+2] = z;
+            starPositions[i+3] = x; starPositions[i+4] = y; starPositions[i+5] = z - 2;
 
             const baseColor = colors[Math.floor(Math.random() * colors.length)];
             starColors[i] = baseColor.r; starColors[i+1] = baseColor.g; starColors[i+2] = baseColor.b;
             starColors[i+3] = baseColor.r; starColors[i+4] = baseColor.g; starColors[i+5] = baseColor.b;
         }
 
-        warpStarGeo.setAttribute('position', new THREE.BufferAttribute(warpPositions, 3));
-        warpStarGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
-        const warpStarMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9 });
-        const warpStarField = new THREE.LineSegments(warpStarGeo, warpStarMat);
-        scene.add(warpStarField);
-
-        // 2. Static Point Stars Setup (For behind Borg Ship)
-        const pointStarGeo = new THREE.BufferGeometry();
-        const pointPositions = new Float32Array(starCount * 3);
-        const pointColors = new Float32Array(starCount * 3);
-        for(let i = 0; i < starCount * 3; i += 3) {
-            pointPositions[i] = (Math.random() - 0.5) * 160;
-            pointPositions[i+1] = (Math.random() - 0.5) * 140;
-            pointPositions[i+2] = (Math.random() - 0.5) * 300 - 40;
-
-            const baseColor = colors[Math.floor(Math.random() * colors.length)];
-            pointColors[i] = baseColor.r; pointColors[i+1] = baseColor.g; pointColors[i+2] = baseColor.b;
-        }
-        pointStarGeo.setAttribute('position', new THREE.BufferAttribute(pointPositions, 3));
-        pointStarGeo.setAttribute('color', new THREE.BufferAttribute(pointColors, 3));
-        const pointStarMat = new THREE.PointsMaterial({ size: 0.8, vertexColors: true, transparent: true, opacity: 0.95 });
-        const pointStarField = new THREE.Points(pointStarGeo, pointStarMat);
-        pointStarField.visible = false;
-        scene.add(pointStarField);
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+        starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+        const starMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9 });
+        const starField = new THREE.LineSegments(starGeo, starMat);
+        scene.add(starField);
 
         // --- SINGLE THIN WARP SHIELD STREAM ---
         const streamNodeCount = 50;
@@ -235,7 +214,7 @@
 
         // --- GAME STATE ---
         let gameActive = false, score = 0, shields = 100, photonTorpedoes = 0, warpFactor = 1, missionProgress = 0, sectorCount = 1;
-        let bossActive = false, boss = null, bossHealth = 300, maxBossHealth = 300, borgLaserTimer = 0;
+        let bossActive = false, bossTransitionTimer = 0, jumpToWarpTimer = 0, boss = null, bossHealth = 300, maxBossHealth = 300, borgLaserTimer = 0;
         let lasers = [], borgLasers = [], photonProjectiles = [], meteors = [], torpedoPickups = [];
         let targetX = 0, targetY = 0, keys = {}, lastShotTime = 0;
         let activeTouchId = null, touchStartX = 0, touchStartY = 0, shipStartX = 0, shipStartY = 0;
@@ -294,7 +273,7 @@
         document.getElementById('torpedo-btn').addEventListener('click', fireTorpedo);
 
         function fireBorgLaser() {
-            if (!bossActive || !boss) return;
+            if (!bossActive || bossTransitionTimer > 0 || !boss) return;
             playSound('borg-laser');
             const laserGeo = new THREE.CylinderGeometry(0.08, 0.08, 2.5, 8);
             laserGeo.rotateX(Math.PI / 2);
@@ -306,7 +285,7 @@
         }
 
         function spawnMeteor() {
-            if (!gameActive || bossActive) return;
+            if (!gameActive || bossActive || jumpToWarpTimer > 0) return;
             const meteorMat = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.9, metalness: 0.1, flatShading: true });
             const meteor = new THREE.Mesh(new THREE.DodecahedronGeometry(0.8, 1), meteorMat);
             meteor.position.set((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 3.5, -120);
@@ -317,7 +296,7 @@
         setInterval(spawnMeteor, 1200);
 
         function spawnTorpedoPickup() {
-            if (!gameActive || bossActive) return;
+            if (!gameActive || bossActive || jumpToWarpTimer > 0) return;
             const pickupMat = new THREE.MeshStandardMaterial({ color: 0xff5500, emissive: 0xff3300, emissiveIntensity: 0.8, roughness: 0.2 });
             const pickup = new THREE.Mesh(new THREE.OctahedronGeometry(0.6), pickupMat);
             pickup.position.set((Math.random() - 0.5) * 5, (Math.random() - 0.5) * 3, -120);
@@ -327,10 +306,10 @@
         setInterval(spawnTorpedoPickup, 5000);
 
         function spawnBoss() {
-            bossActive = true; missionProgress = 100; borgLaserTimer = 0;
+            bossActive = true; bossTransitionTimer = 120; missionProgress = 100; borgLaserTimer = 0;
             bossHealth = maxBossHealth;
             document.getElementById('boss-hud').classList.remove('hidden');
-            document.getElementById('objective-title').innerText = "OBJECTIVE: DESTROY THE BORG CUBE";
+            document.getElementById(' objective-title') && (document.getElementById('objective-title').innerText = "OBJECTIVE: DESTROY THE BORG CUBE");
             document.getElementById('objective-title').classList.add('text-red-400');
             document.getElementById('warp-val').innerText = "DISENGAGED";
             document.getElementById('warp-val').classList.add('text-red-500');
@@ -339,31 +318,24 @@
             torpedoPickups.forEach(tp => scene.remove(tp)); torpedoPickups = [];
             shieldStream.visible = false; 
 
-            // Switch starfields: Hide warp streaks, show rich point starfield around Borg Cube
-            warpStarField.visible = false;
-            pointStarField.visible = true;
-
             const bossMat = borgTexture ? new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x228833, wireframe: true });
             boss = new THREE.Mesh(new THREE.PlaneGeometry(8.5, 8.5), bossMat);
-            boss.position.set(0, 1.2, -65); 
+            boss.position.set(0, 1.2, -120); 
             scene.add(boss);
         }
 
         function sectorComplete() {
-            bossActive = false; missionProgress = 0; sectorCount += 1;
+            bossActive = false; jumpToWarpTimer = 90; missionProgress = 0; sectorCount += 1;
             maxBossHealth += 100; 
             document.getElementById('boss-hud').classList.add('hidden');
             document.getElementById('boss-health-bar').style.width = '100%';
             document.getElementById('objective-title').innerText = "SECTOR " + sectorCount;
             document.getElementById('objective-title').classList.remove('text-red-400');
-            document.getElementById('warp-val').innerText = "ENGAGED";
+            document.getElementById('warp-val').innerText = "JUMPING TO WARP";
             document.getElementById('warp-val').classList.remove('text-red-500');
             document.getElementById('menu-desc').innerText = "Sector " + sectorCount + " objective: Subspace interference detected. Defeat any Borg flagship forces.";
             
             shieldStream.visible = true;
-            warpStarField.visible = true;
-            pointStarField.visible = false;
-
             playSound('victory'); score += 3500;
         }
 
@@ -394,9 +366,9 @@
                 if (keys['ArrowDown'] || keys['KeyS']) targetY = Math.max(targetY - 0.2, -1.8);
 
                 let speed = 0;
-                const positions = warpStarGeo.attributes.position.array;
+                const positions = starGeo.attributes.position.array;
 
-                if (!bossActive) {
+                if (!bossActive && jumpToWarpTimer <= 0) {
                     shieldStream.visible = true;
 
                     missionProgress += (0.02 + (sectorCount * 0.005)); 
@@ -406,7 +378,7 @@
                     const streakLength = 1.0 + (warpFactor * 0.4); speed = 0.3 + (warpFactor * 0.2); 
                     for (let i = 0; i < positions.length; i += 6) {
                         positions[i+2] += speed; positions[i+5] = positions[i+2] - streakLength;
-                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 140, ry = (Math.random() - 0.5) * 130, rz = -400; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
+                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 120, ry = (Math.random() - 0.5) * 110, rz = -400; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
                     }
 
                     streamWaveOffset += 0.02;
@@ -432,23 +404,50 @@
                         document.getElementById('shield-bar').style.width = shields + '%';
                         if (Math.random() < 0.1) playSound('shield-charge');
                     }
-                } else {
-                    if (boss && boss.position.z < -25) {
-                        boss.position.z += 0.08; 
+                } else if (bossActive) {
+                    // Smooth deceleration / coming out of warp transition
+                    if (bossTransitionTimer > 0) {
+                        bossTransitionTimer--;
+                        speed = THREE.MathUtils.lerp(1.5, 0.05, 1 - (bossTransitionTimer / 120));
+                        if (boss && boss.position.z < -65) {
+                            boss.position.z += 0.45;
+                        }
+                    } else {
+                        speed = 0.02;
+                        if (boss && boss.position.z < -65) boss.position.z = -65;
+                        borgLaserTimer++;
+                        if (borgLaserTimer % 75 === 0) { 
+                            fireBorgLaser();
+                        }
                     }
 
-                    borgLaserTimer++;
-                    if (borgLaserTimer % 75 === 0) { 
-                        fireBorgLaser();
+                    for (let i = 0; i < positions.length; i += 6) {
+                        positions[i+2] += speed; positions[i+5] = positions[i+2] - (speed * 3);
+                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 120, ry = (Math.random() - 0.5) * 110, rz = -400; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - 2; }
+                    }
+                } else if (jumpToWarpTimer > 0) {
+                    // Transition back into warp with intense blue and yellow streaks
+                    jumpToWarpTimer--;
+                    speed = THREE.MathUtils.lerp(0.2, 4.5, 1 - (jumpToWarpTimer / 90));
+                    const streakLength = THREE.MathUtils.lerp(2, 18, 1 - (jumpToWarpTimer / 90));
+                    
+                    for (let i = 0; i < positions.length; i += 6) {
+                        positions[i+2] += speed; positions[i+5] = positions[i+2] - streakLength;
+                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 120, ry = (Math.random() - 0.5) * 110, rz = -400; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
+                    }
+
+                    if (jumpToWarpTimer <= 0) {
+                        document.getElementById('warp-val').innerText = "ENGAGED";
                     }
                 }
+
                 document.getElementById('mission-bar').style.width = missionProgress + '%';
-                warpStarGeo.attributes.position.needsUpdate = true;
+                starGeo.attributes.position.needsUpdate = true;
 
                 score += (bossActive ? 2 : 1);
                 document.getElementById('score-val').innerText = String(score).padStart(6, '0');
 
-                if (bossActive && boss) {
+                if (bossActive && boss && bossTransitionTimer <= 0) {
                     for (let j = lasers.length - 1; j >= 0; j--) {
                         if (boss.position.distanceTo(lasers[j].position) < 6.0) { 
                             playSound('explosion'); 
@@ -495,7 +494,7 @@
                 for (let i = lasers.length - 1; i >= 0; i--) { lasers[i].position.z -= 2.5; if (lasers[i].position.z < -100) { scene.remove(lasers[i]); lasers.splice(i, 1); } }
                 for (let i = photonProjectiles.length - 1; i >= 0; i--) { photonProjectiles[i].position.z -= 2.0; if (photonProjectiles[i].position.z < -100) { scene.remove(photonProjectiles[i]); photonProjectiles.splice(i, 1); } }
 
-                if (!bossActive) {
+                if (!bossActive && jumpToWarpTimer <= 0) {
                     for (let i = meteors.length - 1; i >= 0; i--) {
                         const m = meteors[i];
                         m.position.z += speed + 0.05;
@@ -548,16 +547,13 @@
         }
 
         function startGame() { 
-            initAudio(); score = 0; shields = 100; photonTorpedoes = 0; warpFactor = 1; missionProgress = 0; bossActive = false; 
+            initAudio(); score = 0; shields = 100; photonTorpedoes = 0; warpFactor = 1; missionProgress = 0; bossActive = false; jumpToWarpTimer = 0; 
             
-            // Reset warp star positions
-            const positions = warpStarGeo.attributes.position.array;
-            for(let i = 0; i < warpOriginalPositions.length; i++) {
-                positions[i] = warpOriginalPositions[i];
+            const positions = starGeo.attributes.position.array;
+            for(let i = 0; i < starOriginalPositions.length; i++) {
+                positions[i] = starOriginalPositions[i];
             }
-            warpStarGeo.attributes.position.needsUpdate = true;
-            warpStarField.visible = true;
-            pointStarField.visible = false;
+            starGeo.attributes.position.needsUpdate = true;
 
             document.getElementById('torpedo-val').innerText = photonTorpedoes;
             document.getElementById('torpedo-btn').classList.add('hidden');
