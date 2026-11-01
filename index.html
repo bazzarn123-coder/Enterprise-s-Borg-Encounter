@@ -168,17 +168,22 @@
         let borgTexture = null;
         loadTransparentTexture('borg_cube.png', (tex) => { borgTexture = tex; });
 
-        // --- STARFIELD SYSTEM (Warp Streaks & Static Stars) ---
-        const starCount = 1200;
+        // --- STARFIELD SYSTEM (Warp Streaks & Static Background Stars) ---
+        const starCount = 1500;
         const starGeo = new THREE.BufferGeometry();
+        const starOriginalPositions = new Float32Array(starCount * 6);
         const starPositions = new Float32Array(starCount * 6);
         const starColors = new Float32Array(starCount * 6);
         const colors = [ new THREE.Color(0xffffff), new THREE.Color(0x99ffff), new THREE.Color(0xffffcc) ];
 
         for(let i = 0; i < starCount * 6; i += 6) {
-            const x = (Math.random() - 0.5) * 120;
-            const y = (Math.random() - 0.5) * 110;
+            const x = (Math.random() - 0.5) * 140;
+            const y = (Math.random() - 0.5) * 130;
             const z = (Math.random() - 0.5) * 400 - 50;
+            
+            starOriginalPositions[i] = x; starOriginalPositions[i+1] = y; starOriginalPositions[i+2] = z;
+            starOriginalPositions[i+3] = x; starOriginalPositions[i+4] = y; starOriginalPositions[i+5] = z - 2;
+
             starPositions[i] = x; starPositions[i+1] = y; starPositions[i+2] = z;
             starPositions[i+3] = x; starPositions[i+4] = y; starPositions[i+5] = z - 2;
 
@@ -373,7 +378,7 @@
                     const streakLength = 1.0 + (warpFactor * 0.4); speed = 0.3 + (warpFactor * 0.2); 
                     for (let i = 0; i < positions.length; i += 6) {
                         positions[i+2] += speed; positions[i+5] = positions[i+2] - streakLength;
-                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 120, ry = (Math.random() - 0.5) * 110, rz = -400; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
+                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 140, ry = (Math.random() - 0.5) * 130, rz = -400; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
                     }
 
                     streamWaveOffset += 0.02;
@@ -400,7 +405,7 @@
                         if (Math.random() < 0.1) playSound('shield-charge');
                     }
                 } else {
-                    // Out of warp: Transition starfield to static stars behind the Borg ship
+                    // Out of warp: Revert star segments into static background points behind Borg ship
                     for (let i = 0; i < positions.length; i += 6) { 
                         positions[i+3] = positions[i]; 
                         positions[i+4] = positions[i+1]; 
@@ -468,12 +473,69 @@
 
                 for (let i = lasers.length - 1; i >= 0; i--) { lasers[i].position.z -= 2.5; if (lasers[i].position.z < -100) { scene.remove(lasers[i]); lasers.splice(i, 1); } }
                 for (let i = photonProjectiles.length - 1; i >= 0; i--) { photonProjectiles[i].position.z -= 2.0; if (photonProjectiles[i].position.z < -100) { scene.remove(photonProjectiles[i]); photonProjectiles.splice(i, 1); } }
+
+                if (!bossActive) {
+                    for (let i = meteors.length - 1; i >= 0; i--) {
+                        const m = meteors[i];
+                        m.position.z += speed + 0.05;
+                        m.rotation.x += m.userData.rotSpeed.x;
+                        m.rotation.y += m.userData.rotSpeed.y;
+                        if (m.position.distanceTo(playerGroup.position) < 1.3) {
+                            playSound('explosion');
+                            shields -= 20;
+                            document.getElementById('shield-bar').style.width = shields + '%';
+                            scene.remove(m);
+                            meteors.splice(i, 1);
+                            if (shields <= 0) endGame();
+                            continue;
+                        }
+                        let destroyed = false;
+                        for (let j = lasers.length - 1; j >= 0; j--) {
+                            if (m.position.distanceTo(lasers[j].position) < 1.2) {
+                                playSound('explosion');
+                                score += 150;
+                                scene.remove(m); meteors.splice(i, 1);
+                                scene.remove(lasers[j]); lasers.splice(j, 1);
+                                destroyed = true; break;
+                            }
+                        }
+                        if (destroyed) continue;
+                        if (m.position.z > 10) { scene.remove(m); meteors.splice(i, 1); }
+                    }
+
+                    for (let i = torpedoPickups.length - 1; i >= 0; i--) {
+                        const tp = torpedoPickups[i];
+                        tp.position.z += speed + 0.05;
+                        tp.rotation.y += 0.03;
+                        if (tp.position.distanceTo(playerGroup.position) < 1.8) {
+                            playSound('torpedo-pickup');
+                            photonTorpedoes += 1;
+                            document.getElementById('torpedo-val').innerText = photonTorpedoes;
+                            document.getElementById('torpedo-btn').classList.remove('hidden');
+                            scene.remove(tp);
+                            torpedoPickups.splice(i, 1);
+                            continue;
+                        }
+                        if (tp.position.z > 10) {
+                            scene.remove(tp);
+                            torpedoPickups.splice(i, 1);
+                        }
+                    }
+                }
             }
             renderer.render(scene, camera);
         }
 
         function startGame() { 
             initAudio(); score = 0; shields = 100; photonTorpedoes = 0; warpFactor = 1; missionProgress = 0; bossActive = false; 
+            
+            // Reset star positions back to original warp starfield layout
+            const positions = starGeo.attributes.position.array;
+            for(let i = 0; i < starOriginalPositions.length; i++) {
+                positions[i] = starOriginalPositions[i];
+            }
+            starGeo.attributes.position.needsUpdate = true;
+
             document.getElementById('torpedo-val').innerText = photonTorpedoes;
             document.getElementById('torpedo-btn').classList.add('hidden');
             if (boss) { scene.remove(boss); boss = null; } 
