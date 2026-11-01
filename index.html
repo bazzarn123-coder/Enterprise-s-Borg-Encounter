@@ -230,7 +230,7 @@
         pointStarField.visible = false;
         scene.add(pointStarField);
 
-        // --- SINGLE WAVY SHIELD STREAM LINE (Reduced visibility by 85%) ---
+        // --- SINGLE WAVY SHIELD STREAM LINE ---
         const streamNodeCount = 60;
         const streamPositions = new Float32Array(streamNodeCount * 3);
         for(let i = 0; i < streamNodeCount; i++) {
@@ -240,7 +240,6 @@
         }
         const shieldStreamGeo = new THREE.BufferGeometry();
         shieldStreamGeo.setAttribute('position', new THREE.BufferAttribute(streamPositions, 3));
-        // Opacity reduced by 85% (0.95 * 0.15 ≈ 0.15)
         const streamMat = new THREE.LineBasicMaterial({ color: 0x00ffff, linewidth: 2, transparent: true, opacity: 0.15 });
         const shieldStream = new THREE.Line(shieldStreamGeo, streamMat);
         scene.add(shieldStream);
@@ -603,7 +602,7 @@
             borgLasers.forEach(bl => scene.remove(bl)); borgLasers = [];
             targetX = 0; targetY = 0; playerGroup.position.set(0, 0, 0); 
             shieldStream.visible = true;
-            document.getElementById('shield-bar').style.width = '100%
+            document.getElementById('shield-bar').style.width = '100%';
             document.getElementById('mission-bar').style.width = '0%'; 
             document.getElementById('boss-hud').classList.add('hidden'); 
             document.getElementById('menu-screen').classList.add('hidden'); 
