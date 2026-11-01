@@ -168,8 +168,10 @@
         let borgTexture = null;
         loadTransparentTexture('borg_cube.png', (tex) => { borgTexture = tex; });
 
-        // --- CLEAN STARFIELD SYSTEM (With Blue, Cyan & Yellow Star Streaks) ---
+        // --- STARFIELD SYSTEMS ---
         const starCount = 1200;
+        
+        // 1. Warp Star Streaks Setup
         const starGeo = new THREE.BufferGeometry();
         const starPositions = new Float32Array(starCount * 6);
         const starOriginalPositions = new Float32Array(starCount * 6);
@@ -197,6 +199,34 @@
         const starMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9 });
         const starField = new THREE.LineSegments(starGeo, starMat);
         scene.add(starField);
+
+        // 2. Static Point Starfield (Tiny glowing dots using circular canvas texture to prevent square blocks)
+        const dotCanvas = document.createElement('canvas');
+        dotCanvas.width = 16; dotCanvas.height = 16;
+        const dotCtx = dotCanvas.getContext('2d');
+        dotCtx.beginPath();
+        dotCtx.arc(8, 8, 7, 0, Math.PI * 2);
+        dotCtx.fillStyle = '#ffffff';
+        dotCtx.fill();
+        const dotTexture = new THREE.CanvasTexture(dotCanvas);
+
+        const pointStarGeo = new THREE.BufferGeometry();
+        const pointPositions = new Float32Array(starCount * 3);
+        const pointColors = new Float32Array(starCount * 3);
+        for(let i = 0; i < starCount * 3; i += 3) {
+            pointPositions[i] = (Math.random() - 0.5) * 160;
+            pointPositions[i+1] = (Math.random() - 0.5) * 140;
+            pointPositions[i+2] = (Math.random() - 0.5) * 300 - 40;
+
+            const baseColor = colors[Math.floor(Math.random() * colors.length)];
+            pointColors[i] = baseColor.r; pointColors[i+1] = baseColor.g; pointColors[i+2] = baseColor.b;
+        }
+        pointStarGeo.setAttribute('position', new THREE.BufferAttribute(pointPositions, 3));
+        pointStarGeo.setAttribute('color', new THREE.BufferAttribute(pointColors, 3));
+        const pointStarMat = new THREE.PointsMaterial({ size: 0.6, map: dotTexture, vertexColors: true, transparent: true, opacity: 0.95, alphaTest: 0.5 });
+        const pointStarField = new THREE.Points(pointStarGeo, pointStarMat);
+        pointStarField.visible = false;
+        scene.add(pointStarField);
 
         // --- SINGLE THIN WARP SHIELD STREAM ---
         const streamNodeCount = 50;
@@ -309,7 +339,7 @@
             bossActive = true; bossTransitionTimer = 120; missionProgress = 100; borgLaserTimer = 0;
             bossHealth = maxBossHealth;
             document.getElementById('boss-hud').classList.remove('hidden');
-            document.getElementById(' objective-title') && (document.getElementById('objective-title').innerText = "OBJECTIVE: DESTROY THE BORG CUBE");
+            document.getElementById('objective-title').innerText = "OBJECTIVE: DESTROY THE BORG CUBE";
             document.getElementById('objective-title').classList.add('text-red-400');
             document.getElementById('warp-val').innerText = "DISENGAGED";
             document.getElementById('warp-val').classList.add('text-red-500');
@@ -317,6 +347,10 @@
             meteors.forEach(m => scene.remove(m)); meteors = [];
             torpedoPickups.forEach(tp => scene.remove(tp)); torpedoPickups = [];
             shieldStream.visible = false; 
+
+            // Switch to static point stars around the Borg ship
+            starField.visible = false;
+            pointStarField.visible = true;
 
             const bossMat = borgTexture ? new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x228833, wireframe: true });
             boss = new THREE.Mesh(new THREE.PlaneGeometry(8.5, 8.5), bossMat);
@@ -336,6 +370,9 @@
             document.getElementById('menu-desc').innerText = "Sector " + sectorCount + " objective: Subspace interference detected. Defeat any Borg flagship forces.";
             
             shieldStream.visible = true;
+            starField.visible = true;
+            pointStarField.visible = false;
+
             playSound('victory'); score += 3500;
         }
 
@@ -405,7 +442,6 @@
                         if (Math.random() < 0.1) playSound('shield-charge');
                     }
                 } else if (bossActive) {
-                    // Smooth deceleration / coming out of warp transition
                     if (bossTransitionTimer > 0) {
                         bossTransitionTimer--;
                         speed = THREE.MathUtils.lerp(1.5, 0.05, 1 - (bossTransitionTimer / 120));
@@ -426,7 +462,6 @@
                         if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 120, ry = (Math.random() - 0.5) * 110, rz = -400; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - 2; }
                     }
                 } else if (jumpToWarpTimer > 0) {
-                    // Transition back into warp with intense blue and yellow streaks
                     jumpToWarpTimer--;
                     speed = THREE.MathUtils.lerp(0.2, 4.5, 1 - (jumpToWarpTimer / 90));
                     const streakLength = THREE.MathUtils.lerp(2, 18, 1 - (jumpToWarpTimer / 90));
@@ -554,6 +589,8 @@
                 positions[i] = starOriginalPositions[i];
             }
             starGeo.attributes.position.needsUpdate = true;
+            starField.visible = true;
+            pointStarField.visible = false;
 
             document.getElementById('torpedo-val').innerText = photonTorpedoes;
             document.getElementById('torpedo-btn').classList.add('hidden');
