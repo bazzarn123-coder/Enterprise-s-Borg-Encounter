@@ -532,7 +532,7 @@
             document.getElementById('menu-screen').classList.add('hidden'); 
             document.getElementById('final-score-container').classList.add('hidden'); 
             meteors.forEach(m => scene.remove(m)); meteors = [];
-            torpedoPickups.forEach(tp => scene.remove(tp)); torpedoPickups.forEach = []; 
+            torpedoPickups.forEach(tp => scene.remove(tp)); torpedoPickups = []; 
             lasers.forEach(l => scene.remove(l)); lasers = []; 
             photonProjectiles.forEach(pp => scene.remove(pp)); photonProjectiles = [];
             gameActive = true; 
@@ -541,7 +541,6 @@
         document.getElementById('start-btn').addEventListener('click', startGame);
         document.getElementById('start-btn').addEventListener('touchend', (e) => { e.preventDefault(); startGame(); });
         
-        // Universal Auto-Resize for any screen size or orientation change
         window.addEventListener('resize', () => { 
             camera.aspect = window.innerWidth / window.innerHeight; 
             camera.updateProjectionMatrix(); 
