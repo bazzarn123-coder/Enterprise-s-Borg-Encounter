@@ -200,12 +200,12 @@
         const starField = new THREE.LineSegments(starGeo, starMat);
         scene.add(starField);
 
-        // 2. Static Point Starfield (Tiny glowing dots using circular canvas texture to prevent square blocks)
+        // 2. Static Point Starfield (Clean procedural circular dots)
         const dotCanvas = document.createElement('canvas');
-        dotCanvas.width = 16; dotCanvas.height = 16;
+        dotCanvas.width = 32; dotCanvas.height = 32;
         const dotCtx = dotCanvas.getContext('2d');
         dotCtx.beginPath();
-        dotCtx.arc(8, 8, 7, 0, Math.PI * 2);
+        dotCtx.arc(16, 16, 14, 0, Math.PI * 2);
         dotCtx.fillStyle = '#ffffff';
         dotCtx.fill();
         const dotTexture = new THREE.CanvasTexture(dotCanvas);
@@ -223,7 +223,7 @@
         }
         pointStarGeo.setAttribute('position', new THREE.BufferAttribute(pointPositions, 3));
         pointStarGeo.setAttribute('color', new THREE.BufferAttribute(pointColors, 3));
-        const pointStarMat = new THREE.PointsMaterial({ size: 0.6, map: dotTexture, vertexColors: true, transparent: true, opacity: 0.95, alphaTest: 0.5 });
+        const pointStarMat = new THREE.PointsMaterial({ size: 0.5, map: dotTexture, vertexColors: true, transparent: true, opacity: 0.95, alphaTest: 0.1, depthWrite: false });
         const pointStarField = new THREE.Points(pointStarGeo, pointStarMat);
         pointStarField.visible = false;
         scene.add(pointStarField);
@@ -353,7 +353,8 @@
 
             const bossMat = borgTexture ? new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x228833, wireframe: true });
             boss = new THREE.Mesh(new THREE.PlaneGeometry(8.5, 8.5), bossMat);
-            boss.position.set(0, 1.2, -45); 
+            // Spawn further out so it can visibly move closer while firing
+            boss.position.set(0, 1.2, -90); 
             scene.add(boss);
         }
 
@@ -444,12 +445,12 @@
                     if (bossTransitionTimer > 0) {
                         bossTransitionTimer--;
                         speed = THREE.MathUtils.lerp(1.5, 0.05, 1 - (bossTransitionTimer / 120));
-                        if (boss && boss.position.z < -45) {
-                            boss.position.z += 0.65;
-                        }
                     } else {
                         speed = 0.02;
-                        if (boss && boss.position.z < -45) boss.position.z = -45;
+                        // Move Borg Cube closer to Enterprise while firing
+                        if (boss && boss.position.z < -45) {
+                            boss.position.z += 0.15;
+                        }
                         borgLaserTimer++;
                         if (borgLaserTimer % 75 === 0) { 
                             fireBorgLaser();
@@ -612,7 +613,7 @@
         function endGame() { 
             gameActive = false; 
             document.getElementById('final-score').innerText = score; 
-            document.getElementById('final-score-container').classList.remove('hidden'); 
+            document.getElementById('final-score-container').classList.add('hidden'); 
             document.getElementById('start-btn').innerText = 'RE-ENGAGE WARP DRIVE'; 
             document.getElementById('menu-screen').classList.remove('hidden'); 
         }
