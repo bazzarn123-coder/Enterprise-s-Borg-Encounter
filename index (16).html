@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Enterprise's Borg Encounter</title>
+    <!-- Custom Enterprise Starship Icon in Browser Navigation Bar -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><path d=%22M50 10 C30 25 15 45 25 65 C30 75 45 85 50 90 C55 85 70 75 75 65 C85 45 70 25 50 10 Z%22 fill=%22%2300aaff%22 stroke=%22%23ffffff%22 stroke-width=%223%22/><circle cx=%2250%22 cy=%2235%22 r=%2212%22 fill=%22%23ffffff%22/></svg>">
+    <!-- Tailwind CSS for Modern HUD -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Orbitron', sans-serif; overflow: hidden; background: #000; margin: 0; user-select: none; touch-action: none; -webkit-touch-callout: none; width: 100vw; height: 100vh; height: 100dvh; }
+        .hud-glass { background: rgba(10, 20, 40, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(0, 170, 255, 0.4); box-shadow: 0 0 20px rgba(0, 170, 255, 0.25); }
+    </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden">
+
+    <!-- Three.js Canvas Container -->
+    <div id="canvas-container" class="absolute inset-0 z-0 overflow-hidden"></div>
+
+    <!-- HUD Overlay -->
+    <div class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-3 sm:p-5 max-w-full overflow-hidden box-border">
+        <!-- Top Bar (Strictly Framed) -->
+        <div class="grid grid-cols-3 items-center w-full max-w-3xl mx-auto gap-2">
+            <!-- Shields & Score -->
+            <div class="hud-glass px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl flex items-center space-x-1.5 sm:space-x-3 text-cyan-400">
+                <div>
+                    <p class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest">SHIELDS</p>
+                    <div class="w-12 sm:w-20 bg-slate-800 h-2 rounded-full overflow-hidden mt-0.5 border border-cyan-500/40">
+                        <div id="shield-bar" class="bg-cyan-400 h-full w-full transition-all duration-300 shadow-[0_0_10px_#00aaff]"></div>
+                    </div>
+                </div>
+                <div>
+                    <p class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest">TORP</p>
+                    <p id="torpedo-val" class="text-xs sm:text-sm font-black text-red-400">0</p>
+                </div>
+                <div>
+                    <p class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest">SCORE</p>
+                    <p id="score-val" class="text-xs sm:text-sm font-black text-white">000000</p>
+                </div>
+            </div>
+
+            <!-- Mission Progress / Sector Objective -->
+            <div class="hud-glass px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl text-center text-cyan-400 mx-auto w-full max-w-[140px]">
+                <p id="objective-title" class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest truncate">MISSION</p>
+                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-0.5 border border-cyan-500/40">
+                    <div id="mission-bar" class="bg-yellow-400 h-full w-0 transition-all duration-300 shadow-[0_0_10px_#ffaa00]"></div>
+                </div>
+            </div>
+
+            <!-- Warp Status -->
+            <div class="hud-glass px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl text-center text-cyan-400 ml-auto">
+                <p id="warp-title" class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest">WARP</p>
+                <p id="warp-val" class="text-xs sm:text-sm font-black text-yellow-400 truncate">ENGAGED</p>
+            </div>
+        </div>
+
+        <!-- Boss Health Bar -->
+        <div id="boss-hud" class="w-full max-w-sm mx-auto hidden pointer-events-auto text-center px-4">
+            <p class="text-[8px] sm:text-[10px] text-red-400 font-bold tracking-widest mb-1 shadow-[0_0_5px_rgba(255,0,0,0.8)]">WARNING: OUT OF WARP - BORG CUBE APPROACHING</p>
+            <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-red-500/60 shadow-[0_0_15px_rgba(255,0,0,0.5)]">
+                <div id="boss-health-bar" class="bg-red-600 h-full w-full transition-all duration-150"></div>
+            </div>
+        </div>
+
+        <!-- Bottom Action Controls & Notifications -->
+        <div class="flex flex-col items-center pb-12 sm:pb-6 pointer-events-auto gap-2">
+            <div class="flex justify-center items-center gap-3">
+                <button id="fire-btn" class="px-5 py-2.5 bg-cyan-600/80 hover:bg-cyan-500 text-white font-black text-xs rounded-xl tracking-widest border border-cyan-400/50 shadow-[0_0_15px_rgba(0,170,255,0.4)] cursor-pointer active:scale-95 transition-all">
+                    FIRE PHASERS
+                </button>
+                <button id="torpedo-btn" class="hidden px-5 py-2.5 bg-red-600/90 hover:bg-red-500 text-white font-black text-xs rounded-xl tracking-widest border border-red-400/50 shadow-[0_0_15px_rgba(255,0,0,0.5)] cursor-pointer active:scale-95 transition-all">
+                    FIRE TORPEDO
+                </button>
+            </div>
+            <p class="text-cyan-400/60 text-[8px] sm:text-[10px] tracking-widest text-center">TWO-FINGER TOUCH: STEER WITH ONE FINGER, FIRE WITH THE OTHER</p>
+        </div>
+    </div>
+
+    <!-- Start / Game Over Overlay Modal -->
+    <div id="menu-screen" class="absolute inset-0 z-25 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center text-center p-6 pointer-events-auto">
+        <div class="hud-glass p-6 sm:p-8 rounded-2xl max-w-md w-full border border-cyan-500/50">
+            <h1 id="menu-title" class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 mb-2 tracking-wider">ENTERPRISE'S BORG ENCOUNTER</h1>
+            <p id="menu-desc" class="text-cyan-200/70 text-xs sm:text-sm mb-6">Mobile Cruiser Mode: Navigate warp, shoot meteors, follow the shield stream, and defeat the Borg.</p>
+            
+            <div id="final-score-container" class="hidden mb-6">
+                <p class="text-xs text-cyan-300/70">MISSION REPORT - FINAL SCORE</p>
+                <p id="final-score" class="text-2xl font-bold text-yellow-400">0</p>
+            </div>
+
+            <button id="start-btn" class="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black rounded-xl tracking-widest shadow-[0_0_25px_rgba(0,170,255,0.6)] transition-all cursor-pointer">
+                ENGAGE WARP DRIVE
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Logic Script -->
+    <script>
+        // --- AUDIO SYSTEM ---
+        let audioCtx = null;
+        function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+        function playSound(type) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination); const now = audioCtx.currentTime;
+            if (type === 'laser') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.15); gain.gain.setValueAtTime(0.15, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.15); osc.start(now); osc.stop(now + 0.15); }
+            else if (type === 'torpedo') { osc.type = 'sine'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(80, now + 0.3); gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
+            else if (type === 'borg-laser') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(80, now + 0.3); gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
+            else if (type === 'explosion') { osc.type = 'square'; osc.frequency.setValueAtTime(120, now); osc.frequency.linearRampToValueAtTime(30, now + 0.4); gain.gain.setValueAtTime(0.25, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.4); osc.start(now); osc.stop(now + 0.4); }
+            else if (type === 'shield-charge') { osc.type = 'sine'; osc.frequency.setValueAtTime(520, now); osc.frequency.exponentialRampToValueAtTime(1046.5, now + 0.15); gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.15); osc.start(now); osc.stop(now + 0.15); }
+            else if (type === 'torpedo-pickup') { osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(600, now + 0.2); gain.gain.setValueAtTime(0.25, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.2); osc.start(now); osc.stop(now + 0.2); }
+            else if (type === 'victory') { osc.type = 'triangle'; osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(554.37, now + 0.2); osc.frequency.setValueAtTime(659.25, now + 0.4); gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.8); osc.start(now); osc.stop(now + 0.8); }
+        }
+
+        // --- THREE.JS GAME SETUP ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x020208, 0.015);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 2.0, 9.5);
+        camera.lookAt(0, 0, -5);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight); 
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.2); scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 10, 7);
+        scene.add(directionalLight);
+
+        const playerGroup = new THREE.Group(); scene.add(playerGroup);
+
+        let material1 = null, material2 = null, centerTexture = null, topTexture = null, midTopTexture = null, midBottomTexture = null, bottomTexture = null;
+        let defaultTexture = new THREE.CanvasTexture(document.createElement('canvas'));
+
+        function loadTransparentTexture(url, callback) {
+            const img = new Image(); img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                const canvas = document.createElement('canvas'); canvas.width = img.width; canvas.height = img.height;
+                const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0);
+                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height); const data = imgData.data;
+                for (let i = 0; i < data.length; i += 4) { if (data[i] < 25 && data[i+1] < 25 && data[i+2] < 25) { data[i+3] = 0; } }
+                ctx.putImageData(imgData, 0, 0); const texture = new THREE.CanvasTexture(canvas);
+                texture.generateMipmaps = true; texture.minFilter = THREE.LinearMipmapLinearFilter; callback(texture);
+            };
+            img.onerror = () => { console.warn("Could not load: " + url); callback(null); }; img.src = url;
+        }
+
+        const shipGeo = new THREE.PlaneGeometry(2.6, 1.1);
+        material1 = new THREE.MeshBasicMaterial({ map: defaultTexture, transparent: true, opacity: 1.0, side: THREE.DoubleSide });
+        material2 = new THREE.MeshBasicMaterial({ map: defaultTexture, transparent: true, opacity: 0.0, side: THREE.DoubleSide });
+        playerGroup.add(new THREE.Mesh(shipGeo, material1));
+        const m2 = new THREE.Mesh(shipGeo, material2); m2.position.z = 0.001; playerGroup.add(m2);
+
+        loadTransparentTexture('ship.png', (tex) => { if(tex) { centerTexture = tex; material1.map = tex; material1.needsUpdate = true; } });
+        loadTransparentTexture('ship top.png', (tex) => { topTexture = tex || centerTexture; });
+        loadTransparentTexture('ship mid-top.png', (tex) => { midTopTexture = tex || centerTexture; });
+        loadTransparentTexture('ship mid-bottom.png', (tex) => { midBottomTexture = tex || centerTexture; });
+        loadTransparentTexture('ship bottom.png', (tex) => { bottomTexture = tex || centerTexture; });
+
+        let borgTexture = null;
+        loadTransparentTexture('borg_cube.png', (tex) => { borgTexture = tex; });
+
+        // --- STARFIELD SYSTEMS ---
+        const starCount = 1200;
+        
+        // 1. Warp Star Streaks Setup
+        const starGeo = new THREE.BufferGeometry();
+        const starPositions = new Float32Array(starCount * 6);
+        const starOriginalPositions = new Float32Array(starCount * 6);
+        const starColors = new Float32Array(starCount * 6);
+        const colors = [ new THREE.Color(0x00aaff), new THREE.Color(0x00ffff), new THREE.Color(0xffaa00), new THREE.Color(0xffffff) ];
+
+        for(let i = 0; i < starCount * 6; i += 6) {
+            const x = (Math.random() - 0.5) * 120;
+            const y = (Math.random() - 0.5) * 110;
+            const z = (Math.random() - 0.5) * 400 - 50;
+            
+            starOriginalPositions[i] = x; starOriginalPositions[i+1] = y; starOriginalPositions[i+2] = z;
+            starOriginalPositions[i+3] = x; starOriginalPositions[i+4] = y; starOriginalPositions[i+5] = z - 2;
+
+            starPositions[i] = x; starPositions[i+1] = y; starPositions[i+2] = z;
+            starPositions[i+3] = x; starPositions[i+4] = y; starPositions[i+5] = z - 2;
+
+            const baseColor = colors[Math.floor(Math.random() * colors.length)];
+            starColors[i] = baseColor.r; starColors[i+1] = baseColor.g; starColors[i+2] = baseColor.b;
+            starColors[i+3] = baseColor.r; starColors[i+4] = baseColor.g; starColors[i+5] = baseColor.b;
+        }
+
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+        starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+        const starMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9 });
+        const starField = new THREE.LineSegments(starGeo, starMat);
+        scene.add(starField);
+
+        // 2. Static Point Starfield (Clean procedural circular dots)
+        const dotCanvas = document.createElement('canvas');
+        dotCanvas.width = 32; dotCanvas.height = 32;
+        const dotCtx = dotCanvas.getContext('2d');
+        dotCtx.beginPath();
+        dotCtx.arc(16, 16, 14, 0, Math.PI * 2);
+        dotCtx.fillStyle = '#ffffff';
+        dotCtx.fill();
+        const dotTexture = new THREE.CanvasTexture(dotCanvas);
+
+        const pointStarGeo = new THREE.BufferGeometry();
+        const pointPositions = new Float32Array(starCount * 3);
+        const pointColors = new Float32Array(starCount * 3);
+        for(let i = 0; i < starCount * 3; i += 3) {
+            pointPositions[i] = (Math.random() - 0.5) * 160;
+            pointPositions[i+1] = (Math.random() - 0.5) * 140;
+            pointPositions[i+2] = (Math.random() - 0.5) * 300 - 40;
+
+            const baseColor = colors[Math.floor(Math.random() * colors.length)];
+            pointColors[i] = baseColor.r; pointColors[i+1] = baseColor.g; pointColors[i+2] = baseColor.b;
+        }
+        pointStarGeo.setAttribute('position', new THREE.BufferAttribute(pointPositions, 3));
+        pointStarGeo.setAttribute('color', new THREE.BufferAttribute(pointColors, 3));
+        const pointStarMat = new THREE.PointsMaterial({ size: 0.5, map: dotTexture, vertexColors: true, transparent: true, opacity: 0.95, alphaTest: 0.1, depthWrite: false });
+        const pointStarField = new THREE.Points(pointStarGeo, pointStarMat);
+        pointStarField.visible = false;
+        scene.add(pointStarField);
+
+        // --- SINGLE THIN WARP SHIELD STREAM ---
+        const streamNodeCount = 50;
+        const streamPositions = new Float32Array(streamNodeCount * 3);
+        for(let i = 0; i < streamNodeCount; i++) {
+            streamPositions[i*3] = Math.sin(i * 0.2) * 2.2;
+            streamPositions[i*3+1] = Math.cos(i * 0.15) * 0.9;
+            streamPositions[i*3+2] = -i * 4;
+        }
+        const shieldStreamGeo = new THREE.BufferGeometry();
+        shieldStreamGeo.setAttribute('position', new THREE.BufferAttribute(streamPositions, 3));
+        const streamMat = new THREE.PointsMaterial({ color: 0x00ffff, size: 0.25, transparent: true, opacity: 0.95 });
+        const shieldStream = new THREE.Points(shieldStreamGeo, streamMat);
+        scene.add(shieldStream);
+
+        // --- GAME STATE ---
+        let gameActive = false, score = 0, shields = 100, photonTorpedoes = 0, warpFactor = 1, missionProgress = 0, sectorCount = 1;
+        let bossActive = false, bossTransitionTimer = 0, jumpToWarpTimer = 0, boss = null, bossHealth = 300, maxBossHealth = 300, borgLaserTimer = 0;
+        let lasers = [], borgLasers = [], photonProjectiles = [], meteors = [], torpedoPickups = [];
+        let targetX = 0, targetY = 0, keys = {}, lastShotTime = 0;
+        let activeTouchId = null, touchStartX = 0, touchStartY = 0, shipStartX = 0, shipStartY = 0;
+        let streamWaveOffset = 0;
+
+        // --- UNIVERSAL TOUCH & MOUSE STEERING ---
+        window.addEventListener('pointerdown', (e) => {
+            if (!gameActive || e.target.tagName === 'BUTTON') return;
+            if (activeTouchId === null) {
+                activeTouchId = e.pointerId;
+                touchStartX = e.clientX; touchStartY = e.clientY;
+                shipStartX = targetX; shipStartY = targetY;
+            }
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (!gameActive || e.pointerId !== activeTouchId) return;
+            const deltaX = (e.clientX - touchStartX) * 0.02;
+            const deltaY = (e.clientY - touchStartY) * 0.02;
+            targetX = THREE.MathUtils.clamp(shipStartX + deltaX, -3.0, 3.0);
+            targetY = THREE.MathUtils.clamp(shipStartY - deltaY, -1.8, 1.8);
+        });
+
+        window.addEventListener('pointerup', (e) => { if (e.pointerId === activeTouchId) activeTouchId = null; });
+        window.addEventListener('pointercancel', (e) => { if (e.pointerId === activeTouchId) activeTouchId = null; });
+
+        window.addEventListener('keydown', (e) => { keys[e.code] = true; if (e.code === 'Space' && gameActive) firePhasers(); });
+        window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+        function firePhasers() {
+            const now = Date.now();
+            if (now - lastShotTime < 150) return;
+            lastShotTime = now; playSound('laser');
+            const laserGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.9, 8); laserGeo.rotateX(Math.PI / 2);
+            const laserMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+            [-0.7, 0.7].forEach(offsetX => { const laser = new THREE.Mesh(laserGeo, laserMat); laser.position.set(playerGroup.position.x + offsetX, playerGroup.position.y, playerGroup.position.z - 1); scene.add(laser); lasers.push(laser); });
+        }
+
+        function fireTorpedo() {
+            if (photonTorpedoes <= 0 || !bossActive) return;
+            photonTorpedoes--;
+            document.getElementById('torpedo-val').innerText = photonTorpedoes;
+            if (photonTorpedoes <= 0) {
+                document.getElementById('torpedo-btn').classList.add('hidden');
+            }
+            playSound('torpedo');
+            const torpGeo = new THREE.SphereGeometry(0.22, 12, 12);
+            const torpMat = new THREE.MeshBasicMaterial({ color: 0xff3300 });
+            const torpedo = new THREE.Mesh(torpGeo, torpMat);
+            torpedo.position.set(playerGroup.position.x, playerGroup.position.y, playerGroup.position.z - 1);
+            scene.add(torpedo);
+            photonProjectiles.push(torpedo);
+        }
+
+        document.getElementById('fire-btn').addEventListener('click', firePhasers);
+        document.getElementById('torpedo-btn').addEventListener('click', fireTorpedo);
+
+        function fireBorgLaser() {
+            if (!bossActive || bossTransitionTimer > 0 || !boss) return;
+            playSound('borg-laser');
+            const laserGeo = new THREE.CylinderGeometry(0.08, 0.08, 2.5, 8);
+            laserGeo.rotateX(Math.PI / 2);
+            const laserMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 }); 
+            const bLaser = new THREE.Mesh(laserGeo, laserMat);
+            bLaser.position.set(boss.position.x + (Math.random() - 0.5) * 4, boss.position.y + (Math.random() - 0.5) * 4, boss.position.z);
+            scene.add(bLaser);
+            borgLasers.push(bLaser);
+        }
+
+        function spawnMeteor() {
+            if (!gameActive || bossActive || jumpToWarpTimer > 0) return;
+            const meteorMat = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.9, metalness: 0.1, flatShading: true });
+            const meteor = new THREE.Mesh(new THREE.DodecahedronGeometry(0.8, 1), meteorMat);
+            meteor.position.set((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 3.5, -120);
+            meteor.userData = { rotSpeed: new THREE.Vector3((Math.random()-0.5)*0.04, (Math.random()-0.5)*0.04, 0) };
+            scene.add(meteor);
+            meteors.push(meteor);
+        }
+        setInterval(spawnMeteor, 1200);
+
+        function spawnTorpedoPickup() {
+            if (!gameActive || bossActive || jumpToWarpTimer > 0) return;
+            const pickupMat = new THREE.MeshStandardMaterial({ color: 0xff5500, emissive: 0xff3300, emissiveIntensity: 0.8, roughness: 0.2 });
+            const pickup = new THREE.Mesh(new THREE.OctahedronGeometry(0.6), pickupMat);
+            pickup.position.set((Math.random() - 0.5) * 5, (Math.random() - 0.5) * 3, -120);
+            scene.add(pickup);
+            torpedoPickups.push(pickup);
+        }
+        setInterval(spawnTorpedoPickup, 5000);
+
+        function spawnBoss() {
+            bossActive = true; bossTransitionTimer = 120; missionProgress = 100; borgLaserTimer = 0;
+            bossHealth = maxBossHealth;
+            document.getElementById('boss-hud').classList.remove('hidden');
+            document.getElementById('objective-title').innerText = "OBJECTIVE: DESTROY THE BORG CUBE";
+            document.getElementById('objective-title').classList.add('text-red-400');
+            document.getElementById('warp-val').innerText = "DISENGAGED";
+            document.getElementById('warp-val').classList.add('text-red-500');
+
+            meteors.forEach(m => scene.remove(m)); meteors = [];
+            torpedoPickups.forEach(tp => scene.remove(tp)); torpedoPickups = [];
+            shieldStream.visible = false; 
+
+            starField.visible = false;
+            pointStarField.visible = true;
+
+            const bossMat = borgTexture ? new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x228833, wireframe: true });
+            // Start smaller at a distance (-110) so it scales up to twice size as it closes in (-45)
+            boss = new THREE.Mesh(new THREE.PlaneGeometry(6.0, 6.0), bossMat);
+            boss.position.set(0, 1.2, -110); 
+            scene.add(boss);
+        }
+
+        function sectorComplete() {
+            bossActive = false; jumpToWarpTimer = 90; missionProgress = 0; sectorCount += 1;
+            maxBossHealth += 100; 
+            document.getElementById('boss-hud').classList.add('hidden');
+            document.getElementById('boss-health-bar').style.width = '100%';
+            document.getElementById('objective-title').innerText = "SECTOR " + sectorCount;
+            document.getElementById('objective-title').classList.remove('text-red-400');
+            document.getElementById('warp-val').innerText = "JUMPING TO WARP";
+            document.getElementById('warp-val').classList.remove('text-red-500');
+            document.getElementById('menu-desc').innerText = "Sector " + sectorCount + " objective: Subspace interference detected. Defeat any Borg flagship forces.";
+            
+            shieldStream.visible = true;
+            starField.visible = true;
+            pointStarField.visible = false;
+
+            playSound('victory'); score += 3500;
+        }
+
+        // --- GAME LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+            if (gameActive) {
+                playerGroup.position.x += (targetX - playerGroup.position.x) * 0.1;
+                playerGroup.position.y += (targetY - playerGroup.position.y) * 0.1;
+                playerGroup.rotation.z = (playerGroup.position.x - targetX) * -0.05;
+
+                if (centerTexture && topTexture && midTopTexture && midBottomTexture && bottomTexture) {
+                    const y = playerGroup.position.y; let texA = centerTexture, texB = centerTexture, mix = 0, targetTilt = 0;
+                    if (y <= -1.4) { texA = topTexture; mix = 0; targetTilt = -0.3; } 
+                    else if (y > -1.4 && y <= -0.7) { texA = topTexture; texB = midTopTexture; mix = (y - (-1.4)) / (-0.7 - (-1.4)); targetTilt = THREE.MathUtils.lerp(-0.3, -0.1, mix); } 
+                    else if (y > -0.7 && y <= -0.2) { texA = midTopTexture; texB = centerTexture; mix = (y - (-0.7)) / (-0.2 - (-0.7)); targetTilt = THREE.MathUtils.lerp(-0.1, 0, mix); } 
+                    else if (y > -0.2 && y <= 0.8) { texA = centerTexture; texB = centerTexture; mix = 0; targetTilt = 0; } 
+                    else if (y > 0.8 && y <= 1.3) { texA = centerTexture; texB = midBottomTexture; mix = (y - 0.8) / (1.3 - 0.8); targetTilt = THREE.MathUtils.lerp(0, 0.12, mix); } 
+                    else if (y > 1.3 && y <= 1.8) { texA = midBottomTexture; texB = bottomTexture; mix = (y - 1.3) / (1.8 - 1.3); targetTilt = THREE.MathUtils.lerp(0.12, 0.25, mix); } 
+                    else { texA = bottomTexture; mix = 0; targetTilt = 0.25; }
+                    material1.map = texA; material2.map = texB; material1.opacity = 1.0 - mix; material2.opacity = mix; material1.needsUpdate = true; material2.needsUpdate = true;
+                    playerGroup.rotation.x += (targetTilt - playerGroup.rotation.x) * 0.15;
+                }
+
+                if (keys['ArrowLeft'] || keys['KeyA']) targetX = Math.max(targetX - 0.2, -3.0);
+                if (keys['ArrowRight'] || keys['KeyD']) targetX = Math.min(targetX + 0.2, 3.0);
+                if (keys['ArrowUp'] || keys['KeyW']) targetY = Math.min(targetY + 0.2, 1.8);
+                if (keys['ArrowDown'] || keys['KeyS']) targetY = Math.max(targetY - 0.2, -1.8);
+
+                let speed = 0;
+                const positions = starGeo.attributes.position.array;
+
+                if (!bossActive && jumpToWarpTimer <= 0) {
+                    shieldStream.visible = true;
+
+                    missionProgress += (0.02 + (sectorCount * 0.005)); 
+                    warpFactor = 1 + (sectorCount - 1) * 2;
+                    if (missionProgress >= 100) spawnBoss();
+                    
+                    const streakLength = 1.0 + (warpFactor * 0.4); speed = 0.3 + (warpFactor * 0.2); 
+                    for (let i = 0; i < positions.length; i += 6) {
+                        positions[i+2] += speed; positions[i+5] = positions[i+2] - streakLength;
+                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 120, ry = (Math.random() - 0.5) * 110, rz = -400; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
+                    }
+
+                    streamWaveOffset += 0.02;
+                    const streamPos = shieldStream.geometry.attributes.position.array;
+                    let closeToStream = false;
+                    for(let i = 0; i < streamNodeCount; i++) {
+                        streamPos[i*3+2] += speed;
+                        if (streamPos[i*3+2] > 10) {
+                            streamPos[i*3+2] = -200;
+                        }
+                        streamPos[i*3] = Math.sin(streamWaveOffset + (i * 0.2)) * 1.8;
+                        streamPos[i*3+1] = Math.cos(streamWaveOffset * 0.8 + (i * 0.15)) * 0.7;
+
+                        const nodeVector = new THREE.Vector3(streamPos[i*3], streamPos[i*3+1], streamPos[i*3+2]);
+                        if (nodeVector.distanceTo(playerGroup.position) < 1.8) { 
+                            closeToStream = true;
+                        }
+                    }
+                    shieldStream.geometry.attributes.position.needsUpdate = true;
+
+                    if (closeToStream) {
+                        shields = Math.min(shields + 0.6, 100);
+                        document.getElementById('shield-bar').style.width = shields + '%';
+                        if (Math.random() < 0.1) playSound('shield-charge');
+                    }
+                } else if (bossActive) {
+                    if (bossTransitionTimer > 0) {
+                        bossTransitionTimer--;
+                        speed = THREE.MathUtils.lerp(1.5, 0.05, 1 - (bossTransitionTimer / 120));
+                    } else {
+                        speed = 0.02;
+                        // Move Borg Cube closer and scale it up to twice its start size
+                        if (boss && boss.position.z < -45) {
+                            boss.position.z += 0.5;
+                            const scaleProgress = THREE.MathUtils.lerp(1.0, 2.0, (-45 - boss.position.z) / (-45 - (-110)));
+                            boss.scale.set(scaleProgress, scaleProgress, scaleProgress);
+                        }
+                        borgLaserTimer++;
+                        if (borgLaserTimer % 75 === 0) { 
+                            fireBorgLaser();
+                        }
+                    }
+
+                    for (let i = 0; i < positions.length; i += 6) {
+                        positions[i+2] += speed; positions[i+5] = positions[i+2] - (speed * 3);
+                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 120, ry = (Math.random() - 0.5) * 110, rz = -400; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - 2; }
+                    }
+                } else if (jumpToWarpTimer > 0) {
+                    jumpToWarpTimer--;
+                    speed = THREE.MathUtils.lerp(0.2, 4.5, 1 - (jumpToWarpTimer / 90));
+                    const streakLength = THREE.MathUtils.lerp(2, 18, 1 - (jumpToWarpTimer / 90));
+                    
+                    for (let i = 0; i < positions.length; i += 6) {
+                        positions[i+2] += speed; positions[i+5] = positions[i+2] - streakLength;
+                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 120, ry = (Math.random() - 0.5) * 110, rz = -400; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
+                    }
+
+                    if (jumpToWarpTimer <= 0) {
+                        document.getElementById('warp-val').innerText = "ENGAGED";
+                    }
+                }
+
+                document.getElementById('mission-bar').style.width = missionProgress + '%';
+                starGeo.attributes.position.needsUpdate = true;
+
+                score += (bossActive ? 2 : 1);
+                document.getElementById('score-val').innerText = String(score).padStart(6, '0');
+
+                if (bossActive && boss && bossTransitionTimer <= 0) {
+                    for (let j = lasers.length - 1; j >= 0; j--) {
+                        if (boss.position.distanceTo(lasers[j].position) < (6.0 * boss.scale.x)) { 
+                            playSound('explosion'); 
+                            bossHealth -= 2; 
+                            const healthPct = Math.max(0, (bossHealth / maxBossHealth) * 100);
+                            document.getElementById('boss-health-bar').style.width = healthPct + '%'; 
+                            scene.remove(lasers[j]); 
+                            lasers.splice(j, 1); 
+                            if (bossHealth <= 0) { scene.remove(boss); boss = null; sectorComplete(); } 
+                            break; 
+                        }
+                    }
+                    for (let j = photonProjectiles.length - 1; j >= 0; j--) {
+                        if (boss.position.distanceTo(photonProjectiles[j].position) < (6.5 * boss.scale.x)) { 
+                            playSound('explosion'); 
+                            bossHealth -= 35; 
+                            const healthPct = Math.max(0, (bossHealth / maxBossHealth) * 100);
+                            document.getElementById('boss-health-bar').style.width = healthPct + '%'; 
+                            scene.remove(photonProjectiles[j]); 
+                            photonProjectiles.splice(j, 1); 
+                            if (bossHealth <= 0) { scene.remove(boss); boss = null; sectorComplete(); } 
+                            break; 
+                        }
+                    }
+                }
+
+                for (let i = borgLasers.length - 1; i >= 0; i--) {
+                    borgLasers[i].position.z += 0.7; 
+                    if (borgLasers[i].position.distanceTo(playerGroup.position) < 1.6) {
+                        playSound('explosion');
+                        shields -= 15;
+                        document.getElementById('shield-bar').style.width = shields + '%';
+                        scene.remove(borgLasers[i]);
+                        borgLasers.splice(i, 1);
+                        if (shields <= 0) endGame();
+                        continue;
+                    }
+                    if (borgLasers[i].position.z > 15) {
+                        scene.remove(borgLasers[i]);
+                        borgLasers.splice(i, 1);
+                    }
+                }
+
+                for (let i = lasers.length - 1; i >= 0; i--) { lasers[i].position.z -= 2.5; if (lasers[i].position.z < -100) { scene.remove(lasers[i]); lasers.splice(i, 1); } }
+                for (let i = photonProjectiles.length - 1; i >= 0; i--) { photonProjectiles[i].position.z -= 2.0; if (photonProjectiles[i].position.z < -100) { scene.remove(photonProjectiles[i]); photonProjectiles.splice(i, 1); } }
+
+                if (!bossActive && jumpToWarpTimer <= 0) {
+                    for (let i = meteors.length - 1; i >= 0; i--) {
+                        const m = meteors[i];
+                        m.position.z += speed + 0.05;
+                        m.rotation.x += m.userData.rotSpeed.x;
+                        m.rotation.y += m.userData.rotSpeed.y;
+                        if (m.position.distanceTo(playerGroup.position) < 1.3) {
+                            playSound('explosion');
+                            shields -= 20;
+                            document.getElementById('shield-bar').style.width = shields + '%';
+                            scene.remove(m);
+                            meteors.splice(i, 1);
+                            if (shields <= 0) endGame();
+                            continue;
+                        }
+                        let destroyed = false;
+                        for (let j = lasers.length - 1; j >= 0; j--) {
+                            if (m.position.distanceTo(lasers[j].position) < 1.2) {
+                                playSound('explosion');
+                                score += 150;
+                                scene.remove(m); meteors.splice(i, 1);
+                                scene.remove(lasers[j]); lasers.splice(j, 1);
+                                destroyed = true; break;
+                            }
+                        }
+                        if (destroyed) continue;
+                        if (m.position.z > 10) { scene.remove(m); meteors.splice(i, 1); }
+                    }
+
+                    for (let i = torpedoPickups.length - 1; i >= 0; i--) {
+                        const tp = torpedoPickups[i];
+                        tp.position.z += speed + 0.05;
+                        tp.rotation.y += 0.03;
+                        if (tp.position.distanceTo(playerGroup.position) < 1.8) {
+                            playSound('torpedo-pickup');
+                            photonTorpedoes += 1;
+                            document.getElementById('torpedo-val').innerText = photonTorpedoes;
+                            document.getElementById('torpedo-btn').classList.remove('hidden');
+                            scene.remove(tp);
+                            torpedoPickups.splice(i, 1);
+                            continue;
+                        }
+                        if (tp.position.z > 10) {
+                            scene.remove(tp);
+                            torpedoPickups.splice(i, 1);
+                        }
+                    }
+                }
+            }
+            renderer.render(scene, camera);
+        }
+
+        function startGame() { 
+            initAudio(); score = 0; shields = 100; photonTorpedoes = 0; warpFactor = 1; missionProgress = 0; bossActive = false; jumpToWarpTimer = 0; 
+            
+            const positions = starGeo.attributes.position.array;
+            for(let i = 0; i < starOriginalPositions.length; i++) {
+                positions[i] = starOriginalPositions[i];
+            }
+            starGeo.attributes.position.needsUpdate = true;
+            starField.visible = true;
+            pointStarField.visible = false;
+
+            document.getElementById('torpedo-val').innerText = photonTorpedoes;
+            document.getElementById('torpedo-btn').classList.add('hidden');
+            if (boss) { scene.remove(boss); boss = null; } 
+            borgLasers.forEach(bl => scene.remove(bl)); borgLasers = [];
+            targetX = 0; targetY = 0; playerGroup.position.set(0, 0, 0); 
+            shieldStream.visible = true;
+            document.getElementById('shield-bar').style.width = '100%'; 
+            document.getElementById('mission-bar').style.width = '0%'; 
+            document.getElementById('boss-hud').classList.add('hidden'); 
+            document.getElementById('menu-screen').classList.add('hidden'); 
+            document.getElementById('final-score-container').classList.add('hidden'); 
+            meteors.forEach(m => scene.remove(m)); meteors = [];
+            torpedoPickups.forEach(tp => scene.remove(tp)); torpedoPickups = []; 
+            lasers.forEach(l => scene.remove(l)); lasers = []; 
+            photonProjectiles.forEach(pp => scene.remove(pp)); photonProjectiles = [];
+            gameActive = true; 
+        }
+
+        function endGame() { 
+            gameActive = false; 
+            document.getElementById('final-score').innerText = score; 
+            document.getElementById('final-score-container').classList.remove('hidden'); 
+            document.getElementById('start-btn').innerText = 'RE-ENGAGE WARP DRIVE'; 
+            document.getElementById('menu-screen').classList.remove('hidden'); 
+        }
+
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('start-btn').addEventListener('touchend', (e) => { e.preventDefault(); startGame(); });
+        
+        window.addEventListener('resize', () => { 
+            camera.aspect = window.innerWidth / window.innerHeight; 
+            camera.updateProjectionMatrix(); 
+            renderer.setSize(window.innerWidth, window.innerHeight); 
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        });
+
+        animate();
+    </script>
+</body>
+</html>
