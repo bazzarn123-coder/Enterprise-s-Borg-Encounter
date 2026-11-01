@@ -355,7 +355,6 @@
 
             const bossMat = borgTexture ? new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x228833, wireframe: true });
             boss = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 5.0), bossMat);
-            // Spawn far away and small, will smoothly move in and scale up in animate loop
             boss.position.set(0, 1.2, -120);
             boss.scale.set(1.0, 1.0, 1.0);
             scene.add(boss);
@@ -450,11 +449,11 @@
                         speed = THREE.MathUtils.lerp(1.5, 0.05, 1 - (bossTransitionTimer / 120));
                     } else {
                         speed = 0.02;
-                        // Smoothly approach and scale up from small to large boss position
                         if (boss && boss.position.z < -25) {
                             boss.position.z += 0.7;
                             const t = THREE.MathUtils.clamp((boss.position.z - (-120)) / (-25 - (-120)), 0, 1);
-                            const currentScale = THREE.MathUtils.lerp(1.0, 8.0, t);
+                            // Reduced max scale by 10% (8.0 * 0.9 = 7.2)
+                            const currentScale = THREE.MathUtils.lerp(1.0, 7.2, t);
                             boss.scale.set(currentScale, currentScale, currentScale);
                         }
                         borgLaserTimer++;
