@@ -352,9 +352,9 @@
             pointStarField.visible = true;
 
             const bossMat = borgTexture ? new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x228833, wireframe: true });
-            // Start smaller at a distance (-110) so it scales up to twice size as it closes in (-45)
-            boss = new THREE.Mesh(new THREE.PlaneGeometry(6.0, 6.0), bossMat);
-            boss.position.set(0, 1.2, -110); 
+            // Start smaller at a distance (-120) and scale up massively to fill the screen up close (-35)
+            boss = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 5.0), bossMat);
+            boss.position.set(0, 1.2, -120); 
             scene.add(boss);
         }
 
@@ -447,10 +447,10 @@
                         speed = THREE.MathUtils.lerp(1.5, 0.05, 1 - (bossTransitionTimer / 120));
                     } else {
                         speed = 0.02;
-                        // Move Borg Cube closer and scale it up to twice its start size
-                        if (boss && boss.position.z < -45) {
+                        // Move Borg Cube closer and scale up massively to fill the screen like your drawing (-35 stop position)
+                        if (boss && boss.position.z < -35) {
                             boss.position.z += 0.5;
-                            const scaleProgress = THREE.MathUtils.lerp(1.0, 2.0, (-45 - boss.position.z) / (-45 - (-110)));
+                            const scaleProgress = THREE.MathUtils.lerp(1.0, 4.5, (-35 - boss.position.z) / (-35 - (-120)));
                             boss.scale.set(scaleProgress, scaleProgress, scaleProgress);
                         }
                         borgLaserTimer++;
@@ -486,7 +486,7 @@
 
                 if (bossActive && boss && bossTransitionTimer <= 0) {
                     for (let j = lasers.length - 1; j >= 0; j--) {
-                        if (boss.position.distanceTo(lasers[j].position) < (6.0 * boss.scale.x)) { 
+                        if (boss.position.distanceTo(lasers[j].position) < (5.0 * boss.scale.x)) { 
                             playSound('explosion'); 
                             bossHealth -= 2; 
                             const healthPct = Math.max(0, (bossHealth / maxBossHealth) * 100);
@@ -498,7 +498,7 @@
                         }
                     }
                     for (let j = photonProjectiles.length - 1; j >= 0; j--) {
-                        if (boss.position.distanceTo(photonProjectiles[j].position) < (6.5 * boss.scale.x)) { 
+                        if (boss.position.distanceTo(photonProjectiles[j].position) < (5.5 * boss.scale.x)) { 
                             playSound('explosion'); 
                             bossHealth -= 35; 
                             const healthPct = Math.max(0, (bossHealth / maxBossHealth) * 100);
@@ -630,7 +630,7 @@
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         });
 
-        animate();
+.animate();
     </script>
 </body>
 </html>
