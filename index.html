@@ -24,50 +24,50 @@
 
     <!-- HUD Overlay -->
     <div class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-3 sm:p-5 max-w-full overflow-hidden box-border">
-        <!-- Top Bar -->
-        <div class="flex justify-between items-center w-full max-w-4xl mx-auto gap-2">
+        <!-- Top Bar (Strictly Framed) -->
+        <div class="grid grid-cols-3 items-center w-full max-w-3xl mx-auto gap-2">
             <!-- Shields & Score -->
-            <div class="hud-glass px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl flex items-center space-x-2 sm:space-x-4 text-cyan-400">
+            <div class="hud-glass px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl flex items-center space-x-1.5 sm:space-x-3 text-cyan-400">
                 <div>
-                    <p class="text-[8px] sm:text-[10px] text-cyan-300/75 tracking-widest">SHIELDS</p>
-                    <div class="w-16 sm:w-24 bg-slate-800 h-2 rounded-full overflow-hidden mt-1 border border-cyan-500/40">
+                    <p class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest">SHIELDS</p>
+                    <div class="w-12 sm:w-20 bg-slate-800 h-2 rounded-full overflow-hidden mt-0.5 border border-cyan-500/40">
                         <div id="shield-bar" class="bg-cyan-400 h-full w-full transition-all duration-300 shadow-[0_0_10px_#00aaff]"></div>
                     </div>
                 </div>
                 <div>
-                    <p class="text-[8px] sm:text-[10px] text-cyan-300/75 tracking-widest">TORP</p>
-                    <p id="torpedo-val" class="text-sm sm:text-base font-black text-red-400">0</p>
+                    <p class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest">TORP</p>
+                    <p id="torpedo-val" class="text-xs sm:text-sm font-black text-red-400">0</p>
                 </div>
                 <div>
-                    <p class="text-[8px] sm:text-[10px] text-cyan-300/75 tracking-widest">SCORE</p>
-                    <p id="score-val" class="text-sm sm:text-base font-black text-white">000000</p>
+                    <p class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest">SCORE</p>
+                    <p id="score-val" class="text-xs sm:text-sm font-black text-white">000000</p>
                 </div>
             </div>
 
             <!-- Mission Progress / Sector Objective -->
-            <div class="hud-glass px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-center text-cyan-400 flex-1 max-w-[150px] sm:max-w-xs mx-1">
-                <p id="objective-title" class="text-[8px] sm:text-[10px] text-cyan-300/75 tracking-widest truncate">MISSION PROGRESS</p>
-                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-1 border border-cyan-500/40">
+            <div class="hud-glass px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl text-center text-cyan-400 mx-auto w-full max-w-[140px]">
+                <p id="objective-title" class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest truncate">MISSION</p>
+                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-0.5 border border-cyan-500/40">
                     <div id="mission-bar" class="bg-yellow-400 h-full w-0 transition-all duration-300 shadow-[0_0_10px_#ffaa00]"></div>
                 </div>
             </div>
 
             <!-- Warp Status -->
-            <div class="hud-glass px-2.5 py-2 sm:px-4 sm:py-2.5 rounded-xl text-center text-cyan-400">
-                <p id="warp-title" class="text-[8px] sm:text-[10px] text-cyan-300/75 tracking-widest">WARP</p>
-                <p id="warp-val" class="text-sm sm:text-base font-black text-yellow-400">ENGAGED</p>
+            <div class="hud-glass px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl text-center text-cyan-400 ml-auto">
+                <p id="warp-title" class="text-[7px] sm:text-[9px] text-cyan-300/75 tracking-widest">WARP</p>
+                <p id="warp-val" class="text-xs sm:text-sm font-black text-yellow-400 truncate">ENGAGED</p>
             </div>
         </div>
 
         <!-- Boss Health Bar -->
         <div id="boss-hud" class="w-full max-w-sm mx-auto hidden pointer-events-auto text-center px-4">
-            <p class="text-[9px] sm:text-xs text-red-400 font-bold tracking-widest mb-1 shadow-[0_0_5px_rgba(255,0,0,0.8)]">WARNING: OUT OF WARP - BORG CUBE APPROACHING</p>
-            <div class="w-full bg-slate-900 h-2 sm:h-2.5 rounded-full overflow-hidden border border-red-500/60 shadow-[0_0_15px_rgba(255,0,0,0.5)]">
+            <p class="text-[8px] sm:text-[10px] text-red-400 font-bold tracking-widest mb-1 shadow-[0_0_5px_rgba(255,0,0,0.8)]">WARNING: OUT OF WARP - BORG CUBE APPROACHING</p>
+            <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-red-500/60 shadow-[0_0_15px_rgba(255,0,0,0.5)]">
                 <div id="boss-health-bar" class="bg-red-600 h-full w-full transition-all duration-150"></div>
             </div>
         </div>
 
-        <!-- Bottom Action Controls & Notifications (Safely positioned above mobile navigation bars) -->
+        <!-- Bottom Action Controls & Notifications -->
         <div class="flex flex-col items-center pb-12 sm:pb-6 pointer-events-auto gap-2">
             <div class="flex justify-center items-center gap-3">
                 <button id="fire-btn" class="px-5 py-2.5 bg-cyan-600/80 hover:bg-cyan-500 text-white font-black text-xs rounded-xl tracking-widest border border-cyan-400/50 shadow-[0_0_15px_rgba(0,170,255,0.4)] cursor-pointer active:scale-95 transition-all">
@@ -168,16 +168,16 @@
         let borgTexture = null;
         loadTransparentTexture('borg_cube.png', (tex) => { borgTexture = tex; });
 
-        // --- STAR STREAKS SYSTEM ---
-        const starCount = 1000;
+        // --- STARFIELD SYSTEM (Warp Streaks & Static Stars) ---
+        const starCount = 1200;
         const starGeo = new THREE.BufferGeometry();
         const starPositions = new Float32Array(starCount * 6);
         const starColors = new Float32Array(starCount * 6);
         const colors = [ new THREE.Color(0xffffff), new THREE.Color(0x99ffff), new THREE.Color(0xffffcc) ];
 
         for(let i = 0; i < starCount * 6; i += 6) {
-            const x = (Math.random() - 0.5) * 100;
-            const y = (Math.random() - 0.5) * 90;
+            const x = (Math.random() - 0.5) * 120;
+            const y = (Math.random() - 0.5) * 110;
             const z = (Math.random() - 0.5) * 400 - 50;
             starPositions[i] = x; starPositions[i+1] = y; starPositions[i+2] = z;
             starPositions[i+3] = x; starPositions[i+4] = y; starPositions[i+5] = z - 2;
@@ -373,7 +373,7 @@
                     const streakLength = 1.0 + (warpFactor * 0.4); speed = 0.3 + (warpFactor * 0.2); 
                     for (let i = 0; i < positions.length; i += 6) {
                         positions[i+2] += speed; positions[i+5] = positions[i+2] - streakLength;
-                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 100, ry = (Math.random() - 0.5) * 90, rz = -400; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
+                        if (positions[i+2] > 15) { const rx = (Math.random() - 0.5) * 120, ry = (Math.random() - 0.5) * 110, rz = -400; positions[i] = rx; positions[i+1] = ry; positions[i+2] = rz; positions[i+3] = rx; positions[i+4] = ry; positions[i+5] = rz - streakLength; }
                     }
 
                     streamWaveOffset += 0.02;
@@ -400,7 +400,10 @@
                         if (Math.random() < 0.1) playSound('shield-charge');
                     }
                 } else {
+                    // Out of warp: Transition starfield to static stars behind the Borg ship
                     for (let i = 0; i < positions.length; i += 6) { 
+                        positions[i+3] = positions[i]; 
+                        positions[i+4] = positions[i+1]; 
                         positions[i+5] = positions[i+2]; 
                     }
                     
@@ -465,55 +468,6 @@
 
                 for (let i = lasers.length - 1; i >= 0; i--) { lasers[i].position.z -= 2.5; if (lasers[i].position.z < -100) { scene.remove(lasers[i]); lasers.splice(i, 1); } }
                 for (let i = photonProjectiles.length - 1; i >= 0; i--) { photonProjectiles[i].position.z -= 2.0; if (photonProjectiles[i].position.z < -100) { scene.remove(photonProjectiles[i]); photonProjectiles.splice(i, 1); } }
-
-                if (!bossActive) {
-                    for (let i = meteors.length - 1; i >= 0; i--) {
-                        const m = meteors[i];
-                        m.position.z += speed + 0.05;
-                        m.rotation.x += m.userData.rotSpeed.x;
-                        m.rotation.y += m.userData.rotSpeed.y;
-                        if (m.position.distanceTo(playerGroup.position) < 1.3) {
-                            playSound('explosion');
-                            shields -= 20;
-                            document.getElementById('shield-bar').style.width = shields + '%';
-                            scene.remove(m);
-                            meteors.splice(i, 1);
-                            if (shields <= 0) endGame();
-                            continue;
-                        }
-                        let destroyed = false;
-                        for (let j = lasers.length - 1; j >= 0; j--) {
-                            if (m.position.distanceTo(lasers[j].position) < 1.2) {
-                                playSound('explosion');
-                                score += 150;
-                                scene.remove(m); meteors.splice(i, 1);
-                                scene.remove(lasers[j]); lasers.splice(j, 1);
-                                destroyed = true; break;
-                            }
-                        }
-                        if (destroyed) continue;
-                        if (m.position.z > 10) { scene.remove(m); meteors.splice(i, 1); }
-                    }
-
-                    for (let i = torpedoPickups.length - 1; i >= 0; i--) {
-                        const tp = torpedoPickups[i];
-                        tp.position.z += speed + 0.05;
-                        tp.rotation.y += 0.03;
-                        if (tp.position.distanceTo(playerGroup.position) < 1.8) {
-                            playSound('torpedo-pickup');
-                            photonTorpedoes += 1;
-                            document.getElementById('torpedo-val').innerText = photonTorpedoes;
-                            document.getElementById('torpedo-btn').classList.remove('hidden');
-                            scene.remove(tp);
-                            torpedoPickups.splice(i, 1);
-                            continue;
-                        }
-                        if (tp.position.z > 10) {
-                            scene.remove(tp);
-                            torpedoPickups.splice(i, 1);
-                        }
-                    }
-                }
             }
             renderer.render(scene, camera);
         }
@@ -537,7 +491,15 @@
             photonProjectiles.forEach(pp => scene.remove(pp)); photonProjectiles = [];
             gameActive = true; 
         }
-        function endGame() { gameActive = false; document.getElementById('final-score').innerText = score; document.getElementById('final-score-container').classList.add('hidden'); document.getElementById('start-btn').innerText = 'RE-ENGAGE WARP DRIVE'; document.getElementById('menu-screen').classList.remove('hidden'); }
+
+        function endGame() { 
+            gameActive = false; 
+            document.getElementById('final-score').innerText = score; 
+            document.getElementById('final-score-container').classList.remove('hidden'); 
+            document.getElementById('start-btn').innerText = 'RE-ENGAGE WARP DRIVE'; 
+            document.getElementById('menu-screen').classList.remove('hidden'); 
+        }
+
         document.getElementById('start-btn').addEventListener('click', startGame);
         document.getElementById('start-btn').addEventListener('touchend', (e) => { e.preventDefault(); startGame(); });
         
