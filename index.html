@@ -168,11 +168,13 @@
         let borgTexture = null;
         loadTransparentTexture('borg_cube.png', (tex) => { borgTexture = tex; });
 
-        // --- STARFIELD SYSTEM (Warp Streaks & Static Background Stars) ---
-        const starCount = 1500;
-        const starGeo = new THREE.BufferGeometry();
-        const starOriginalPositions = new Float32Array(starCount * 6);
-        const starPositions = new Float32Array(starCount * 6);
+        // --- DUAL STARFIELD SYSTEM (Warp Streaks for Warp, Point Stars for Boss Battle) ---
+        const starCount = 1200;
+        
+        // 1. Warp Star Streaks Setup
+        const warpStarGeo = new THREE.BufferGeometry();
+        const warpPositions = new Float32Array(starCount * 6);
+        const warpOriginalPositions = new Float32Array(starCount * 6);
         const starColors = new Float32Array(starCount * 6);
         const colors = [ new THREE.Color(0xffffff), new THREE.Color(0x99ffff), new THREE.Color(0xffffcc) ];
 
@@ -181,22 +183,41 @@
             const y = (Math.random() - 0.5) * 130;
             const z = (Math.random() - 0.5) * 400 - 50;
             
-            starOriginalPositions[i] = x; starOriginalPositions[i+1] = y; starOriginalPositions[i+2] = z;
-            starOriginalPositions[i+3] = x; starOriginalPositions[i+4] = y; starOriginalPositions[i+5] = z - 2;
+            warpOriginalPositions[i] = x; warpOriginalPositions[i+1] = y; warpOriginalPositions[i+2] = z;
+            warpOriginalPositions[i+3] = x; warpOriginalPositions[i+4] = y; warpOriginalPositions[i+5] = z - 2;
 
-            starPositions[i] = x; starPositions[i+1] = y; starPositions[i+2] = z;
-            starPositions[i+3] = x; starPositions[i+4] = y; starPositions[i+5] = z - 2;
+            warpPositions[i] = x; warpPositions[i+1] = y; warpPositions[i+2] = z;
+            warpPositions[i+3] = x; warpPositions[i+4] = y; warpPositions[i+5] = z - 2;
 
             const baseColor = colors[Math.floor(Math.random() * colors.length)];
             starColors[i] = baseColor.r; starColors[i+1] = baseColor.g; starColors[i+2] = baseColor.b;
             starColors[i+3] = baseColor.r; starColors[i+4] = baseColor.g; starColors[i+5] = baseColor.b;
         }
 
-        starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-        starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
-        const starMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9 });
-        const starField = new THREE.LineSegments(starGeo, starMat);
-        scene.add(starField);
+        warpStarGeo.setAttribute('position', new THREE.BufferAttribute(warpPositions, 3));
+        warpStarGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+        const warpStarMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9 });
+        const warpStarField = new THREE.LineSegments(warpStarGeo, warpStarMat);
+        scene.add(warpStarField);
+
+        // 2. Static Point Stars Setup (For behind Borg Ship)
+        const pointStarGeo = new THREE.BufferGeometry();
+        const pointPositions = new Float32Array(starCount * 3);
+        const pointColors = new Float32Array(starCount * 3);
+        for(let i = 0; i < starCount * 3; i += 3) {
+            pointPositions[i] = (Math.random() - 0.5) * 160;
+            pointPositions[i+1] = (Math.random() - 0.5) * 140;
+            pointPositions[i+2] = (Math.random() - 0.5) * 300 - 40;
+
+            const baseColor = colors[Math.floor(Math.random() * colors.length)];
+            pointColors[i] = baseColor.r; pointColors[i+1] = baseColor.g; pointColors[i+2] = baseColor.b;
+        }
+        pointStarGeo.setAttribute('position', new THREE.BufferAttribute(pointPositions, 3));
+        pointStarGeo.setAttribute('color', new THREE.BufferAttribute(pointColors, 3));
+        const pointStarMat = new THREE.PointsMaterial({ size: 0.8, vertexColors: true, transparent: true, opacity: 0.95 });
+        const pointStarField = new THREE.Points(pointStarGeo, pointStarMat);
+        pointStarField.visible = false;
+        scene.add(pointStarField);
 
         // --- SINGLE THIN WARP SHIELD STREAM ---
         const streamNodeCount = 50;
@@ -318,6 +339,10 @@
             torpedoPickups.forEach(tp => scene.remove(tp)); torpedoPickups = [];
             shieldStream.visible = false; 
 
+            // Switch starfields: Hide warp streaks, show rich point starfield around Borg Cube
+            warpStarField.visible = false;
+            pointStarField.visible = true;
+
             const bossMat = borgTexture ? new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x228833, wireframe: true });
             boss = new THREE.Mesh(new THREE.PlaneGeometry(8.5, 8.5), bossMat);
             boss.position.set(0, 1.2, -65); 
@@ -336,6 +361,9 @@
             document.getElementById('menu-desc').innerText = "Sector " + sectorCount + " objective: Subspace interference detected. Defeat any Borg flagship forces.";
             
             shieldStream.visible = true;
+            warpStarField.visible = true;
+            pointStarField.visible = false;
+
             playSound('victory'); score += 3500;
         }
 
@@ -366,7 +394,7 @@
                 if (keys['ArrowDown'] || keys['KeyS']) targetY = Math.max(targetY - 0.2, -1.8);
 
                 let speed = 0;
-                const positions = starGeo.attributes.position.array;
+                const positions = warpStarGeo.attributes.position.array;
 
                 if (!bossActive) {
                     shieldStream.visible = true;
@@ -405,13 +433,6 @@
                         if (Math.random() < 0.1) playSound('shield-charge');
                     }
                 } else {
-                    // Out of warp: Revert star segments into static background points behind Borg ship
-                    for (let i = 0; i < positions.length; i += 6) { 
-                        positions[i+3] = positions[i]; 
-                        positions[i+4] = positions[i+1]; 
-                        positions[i+5] = positions[i+2]; 
-                    }
-                    
                     if (boss && boss.position.z < -25) {
                         boss.position.z += 0.08; 
                     }
@@ -422,7 +443,7 @@
                     }
                 }
                 document.getElementById('mission-bar').style.width = missionProgress + '%';
-                starGeo.attributes.position.needsUpdate = true;
+                warpStarGeo.attributes.position.needsUpdate = true;
 
                 score += (bossActive ? 2 : 1);
                 document.getElementById('score-val').innerText = String(score).padStart(6, '0');
@@ -529,12 +550,14 @@
         function startGame() { 
             initAudio(); score = 0; shields = 100; photonTorpedoes = 0; warpFactor = 1; missionProgress = 0; bossActive = false; 
             
-            // Reset star positions back to original warp starfield layout
-            const positions = starGeo.attributes.position.array;
-            for(let i = 0; i < starOriginalPositions.length; i++) {
-                positions[i] = starOriginalPositions[i];
+            // Reset warp star positions
+            const positions = warpStarGeo.attributes.position.array;
+            for(let i = 0; i < warpOriginalPositions.length; i++) {
+                positions[i] = warpOriginalPositions[i];
             }
-            starGeo.attributes.position.needsUpdate = true;
+            warpStarGeo.attributes.position.needsUpdate = true;
+            warpStarField.visible = true;
+            pointStarField.visible = false;
 
             document.getElementById('torpedo-val').innerText = photonTorpedoes;
             document.getElementById('torpedo-btn').classList.add('hidden');
