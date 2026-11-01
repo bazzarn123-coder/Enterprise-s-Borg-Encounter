@@ -137,41 +137,36 @@
 
         const playerGroup = new THREE.Group(); scene.add(playerGroup);
 
-        let material1 = null, material2 = null, centerTexture = null, topTexture = null, midTopTexture = null, midBottomTexture = null, bottomTexture = null;
-        let defaultTexture = new THREE.CanvasTexture(document.createElement('canvas'));
+        // Procedural Fallback Textures so it never freezes or fails on missing external files
+        const createDefaultShipCanvas = () => {
+            const c = document.createElement('canvas'); c.width = 256; c.height = 128;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#cccccc'; ctx.beginPath(); ctx.ellipse(128, 64, 110, 30, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#00aaff'; ctx.beginPath(); ctx.arc(128, 50, 20, 0, Math.PI*2); ctx.fill();
+            return new THREE.CanvasTexture(c);
+        };
 
-        function loadTransparentTexture(url, callback) {
-            const img = new Image(); img.crossOrigin = 'anonymous';
-            img.onload = () => {
-                const canvas = document.createElement('canvas'); canvas.width = img.width; canvas.height = img.height;
-                const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0);
-                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height); const data = imgData.data;
-                for (let i = 0; i < data.length; i += 4) { if (data[i] < 25 && data[i+1] < 25 && data[i+2] < 25) { data[i+3] = 0; } }
-                ctx.putImageData(imgData, 0, 0); const texture = new THREE.CanvasTexture(canvas);
-                texture.generateMipmaps = true; texture.minFilter = THREE.LinearMipmapLinearFilter; callback(texture);
-            };
-            img.onerror = () => { console.warn("Could not load: " + url); callback(null); }; img.src = url;
-        }
+        const createBorgCanvas = () => {
+            const c = document.createElement('canvas'); c.width = 128; c.height = 128;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#112211'; ctx.fillRect(0, 0, 128, 128);
+            ctx.strokeStyle = '#22aa44'; ctx.lineWidth = 4;
+            for(let i=0; i<=128; i+=16) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,128); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(128,i); ctx.stroke(); }
+            return new THREE.CanvasTexture(c);
+        };
+
+        let centerTexture = createDefaultShipCanvas();
+        let topTexture = centerTexture, midTopTexture = centerTexture, midBottomTexture = centerTexture, bottomTexture = centerTexture;
+        let borgTexture = createBorgCanvas();
 
         const shipGeo = new THREE.PlaneGeometry(2.6, 1.1);
-        material1 = new THREE.MeshBasicMaterial({ map: defaultTexture, transparent: true, opacity: 1.0, side: THREE.DoubleSide });
-        material2 = new THREE.MeshBasicMaterial({ map: defaultTexture, transparent: true, opacity: 0.0, side: THREE.DoubleSide });
+        const material1 = new THREE.MeshBasicMaterial({ map: centerTexture, transparent: true, opacity: 1.0, side: THREE.DoubleSide });
+        const material2 = new THREE.MeshBasicMaterial({ map: centerTexture, transparent: true, opacity: 0.0, side: THREE.DoubleSide });
         playerGroup.add(new THREE.Mesh(shipGeo, material1));
         const m2 = new THREE.Mesh(shipGeo, material2); m2.position.z = 0.001; playerGroup.add(m2);
 
-        loadTransparentTexture('ship.png', (tex) => { if(tex) { centerTexture = tex; material1.map = tex; material1.needsUpdate = true; } });
-        loadTransparentTexture('ship top.png', (tex) => { topTexture = tex || centerTexture; });
-        loadTransparentTexture('ship mid-top.png', (tex) => { midTopTexture = tex || centerTexture; });
-        loadTransparentTexture('ship mid-bottom.png', (tex) => { midBottomTexture = tex || centerTexture; });
-        loadTransparentTexture('ship bottom.png', (tex) => { bottomTexture = tex || centerTexture; });
-
-        let borgTexture = null;
-        loadTransparentTexture('borg_cube.png', (tex) => { borgTexture = tex; });
-
         // --- STARFIELD SYSTEMS ---
         const starCount = 1200;
-        
-        // 1. Warp Star Streaks Setup
         const starGeo = new THREE.BufferGeometry();
         const starPositions = new Float32Array(starCount * 6);
         const starOriginalPositions = new Float32Array(starCount * 6);
@@ -200,14 +195,10 @@
         const starField = new THREE.LineSegments(starGeo, starMat);
         scene.add(starField);
 
-        // 2. Static Point Starfield (Clean procedural circular dots)
         const dotCanvas = document.createElement('canvas');
         dotCanvas.width = 32; dotCanvas.height = 32;
         const dotCtx = dotCanvas.getContext('2d');
-        dotCtx.beginPath();
-        dotCtx.arc(16, 16, 14, 0, Math.PI * 2);
-        dotCtx.fillStyle = '#ffffff';
-        dotCtx.fill();
+        dotCtx.beginPath(); dotCtx.arc(16, 16, 14, 0, Math.PI * 2); dotCtx.fillStyle = '#ffffff'; dotCtx.fill();
         const dotTexture = new THREE.CanvasTexture(dotCanvas);
 
         const pointStarGeo = new THREE.BufferGeometry();
@@ -217,7 +208,6 @@
             pointPositions[i] = (Math.random() - 0.5) * 160;
             pointPositions[i+1] = (Math.random() - 0.5) * 140;
             pointPositions[i+2] = (Math.random() - 0.5) * 300 - 40;
-
             const baseColor = colors[Math.floor(Math.random() * colors.length)];
             pointColors[i] = baseColor.r; pointColors[i+1] = baseColor.g; pointColors[i+2] = baseColor.b;
         }
@@ -351,8 +341,7 @@
             starField.visible = false;
             pointStarField.visible = true;
 
-            const bossMat = borgTexture ? new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true }) : new THREE.MeshBasicMaterial({ color: 0x228833, wireframe: true });
-            // Start smaller at a distance (-120) and scale up massively to fill the screen up close (-35)
+            const bossMat = new THREE.MeshBasicMaterial({ map: borgTexture, transparent: true });
             boss = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 5.0), bossMat);
             boss.position.set(0, 1.2, -120); 
             scene.add(boss);
@@ -383,19 +372,6 @@
                 playerGroup.position.x += (targetX - playerGroup.position.x) * 0.1;
                 playerGroup.position.y += (targetY - playerGroup.position.y) * 0.1;
                 playerGroup.rotation.z = (playerGroup.position.x - targetX) * -0.05;
-
-                if (centerTexture && topTexture && midTopTexture && midBottomTexture && bottomTexture) {
-                    const y = playerGroup.position.y; let texA = centerTexture, texB = centerTexture, mix = 0, targetTilt = 0;
-                    if (y <= -1.4) { texA = topTexture; mix = 0; targetTilt = -0.3; } 
-                    else if (y > -1.4 && y <= -0.7) { texA = topTexture; texB = midTopTexture; mix = (y - (-1.4)) / (-0.7 - (-1.4)); targetTilt = THREE.MathUtils.lerp(-0.3, -0.1, mix); } 
-                    else if (y > -0.7 && y <= -0.2) { texA = midTopTexture; texB = centerTexture; mix = (y - (-0.7)) / (-0.2 - (-0.7)); targetTilt = THREE.MathUtils.lerp(-0.1, 0, mix); } 
-                    else if (y > -0.2 && y <= 0.8) { texA = centerTexture; texB = centerTexture; mix = 0; targetTilt = 0; } 
-                    else if (y > 0.8 && y <= 1.3) { texA = centerTexture; texB = midBottomTexture; mix = (y - 0.8) / (1.3 - 0.8); targetTilt = THREE.MathUtils.lerp(0, 0.12, mix); } 
-                    else if (y > 1.3 && y <= 1.8) { texA = midBottomTexture; texB = bottomTexture; mix = (y - 1.3) / (1.8 - 1.3); targetTilt = THREE.MathUtils.lerp(0.12, 0.25, mix); } 
-                    else { texA = bottomTexture; mix = 0; targetTilt = 0.25; }
-                    material1.map = texA; material2.map = texB; material1.opacity = 1.0 - mix; material2.opacity = mix; material1.needsUpdate = true; material2.needsUpdate = true;
-                    playerGroup.rotation.x += (targetTilt - playerGroup.rotation.x) * 0.15;
-                }
 
                 if (keys['ArrowLeft'] || keys['KeyA']) targetX = Math.max(targetX - 0.2, -3.0);
                 if (keys['ArrowRight'] || keys['KeyD']) targetX = Math.min(targetX + 0.2, 3.0);
@@ -447,7 +423,6 @@
                         speed = THREE.MathUtils.lerp(1.5, 0.05, 1 - (bossTransitionTimer / 120));
                     } else {
                         speed = 0.02;
-                        // Move Borg Cube closer and scale up massively to fill the screen like your drawing (-35 stop position)
                         if (boss && boss.position.z < -35) {
                             boss.position.z += 0.5;
                             const scaleProgress = THREE.MathUtils.lerp(1.0, 4.5, (-35 - boss.position.z) / (-35 - (-120)));
@@ -621,7 +596,7 @@
         }
 
         document.getElementById('start-btn').addEventListener('click', startGame);
-        document.getElementById('start-btn').addEventListener('touchend', (e) => { e.preventDefault(); startGame(); });
+        document.getElementById('start-btn').addEventListener('touched', (e) => { e.preventDefault(); startGame(); });
         
         window.addEventListener('resize', () => { 
             camera.aspect = window.innerWidth / window.innerHeight; 
@@ -630,7 +605,7 @@
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         });
 
-.animate();
+        animate();
     </script>
 </body>
 </html>
