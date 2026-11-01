@@ -230,17 +230,18 @@
         pointStarField.visible = false;
         scene.add(pointStarField);
 
-        // --- SINGLE WAVY SHIELD STREAM LINE (Opacity reduced by 70%) ---
-        const streamNodeCount = 40;
+        // --- SINGLE WAVY SHIELD STREAM LINE (Reduced visibility by 85%) ---
+        const streamNodeCount = 60;
         const streamPositions = new Float32Array(streamNodeCount * 3);
         for(let i = 0; i < streamNodeCount; i++) {
-            streamPositions[i*3] = 1.2;
-            streamPositions[i*3+1] = 0.5;
-            streamPositions[i*3+2] = -i * 3.5;
+            streamPositions[i*3] = Math.sin(i * 0.2) * 2.2;
+            streamPositions[i*3+1] = Math.cos(i * 0.15) * 0.9;
+            streamPositions[i*3+2] = -i * 2.5;
         }
         const shieldStreamGeo = new THREE.BufferGeometry();
         shieldStreamGeo.setAttribute('position', new THREE.BufferAttribute(streamPositions, 3));
-        const streamMat = new THREE.LineBasicMaterial({ color: 0x00ffff, linewidth: 3, transparent: true, opacity: 0.285 });
+        // Opacity reduced by 85% (0.95 * 0.15 ≈ 0.15)
+        const streamMat = new THREE.LineBasicMaterial({ color: 0x00ffff, linewidth: 2, transparent: true, opacity: 0.15 });
         const shieldStream = new THREE.Line(shieldStreamGeo, streamMat);
         scene.add(shieldStream);
 
@@ -426,10 +427,10 @@
                     for(let i = 0; i < streamNodeCount; i++) {
                         streamPos[i*3+2] += speed;
                         if (streamPos[i*3+2] > 10) {
-                            streamPos[i*3+2] = -120;
+                            streamPos[i*3+2] = -150;
                         }
-                        streamPos[i*3] = 1.2 + Math.sin(streamWaveOffset + (i * 0.2)) * 0.8;
-                        streamPos[i*3+1] = 0.5 + Math.cos(streamWaveOffset * 0.8 + (i * 0.15)) * 0.5;
+                        streamPos[i*3] = Math.sin(streamWaveOffset + (i * 0.2)) * 1.8;
+                        streamPos[i*3+1] = Math.cos(streamWaveOffset * 0.8 + (i * 0.15)) * 0.7;
 
                         const nodeVector = new THREE.Vector3(streamPos[i*3], streamPos[i*3+1], streamPos[i*3+2]);
                         if (nodeVector.distanceTo(playerGroup.position) < 1.8) { 
@@ -602,7 +603,7 @@
             borgLasers.forEach(bl => scene.remove(bl)); borgLasers = [];
             targetX = 0; targetY = 0; playerGroup.position.set(0, 0, 0); 
             shieldStream.visible = true;
-            document.getElementById('shield-bar').style.width = '100%'; 
+            document.getElementById('shield-bar').style.width = '100%
             document.getElementById('mission-bar').style.width = '0%'; 
             document.getElementById('boss-hud').classList.add('hidden'); 
             document.getElementById('menu-screen').classList.add('hidden'); 
